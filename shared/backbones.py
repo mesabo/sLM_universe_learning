@@ -95,7 +95,10 @@ def load_backbone(
 
         model = SentenceTransformer(name, device=device, revision=revision)
         tokenizer = model.tokenizer
-        hidden_size = int(model.get_sentence_embedding_dimension() or 0)
+        # `get_embedding_dimension` (sentence-transformers >= 5.4) supersedes
+        # `get_sentence_embedding_dimension`; fall back for older releases.
+        getter = getattr(model, "get_embedding_dimension", None) or model.get_sentence_embedding_dimension
+        hidden_size = int(getter() or 0)
         return Backbone(
             name=name,
             kind=kind,
