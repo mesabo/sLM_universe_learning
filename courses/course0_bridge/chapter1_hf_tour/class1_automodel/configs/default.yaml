@@ -11,7 +11,18 @@ backbone: sentence-transformers/all-MiniLM-L6-v2
 # Prompt for the forward sanity check.
 prompt: "Hello world from sLM Universe Learning."
 
+# Iteration knobs — the script runs `n_passes` timed forward passes after
+# `warmup` untimed ones. Use n_passes >= 5 to get useful latency stats; bump
+# warmup to >=2 on a cold GPU so cuDNN init doesn't skew the first sample.
+iterations:
+  n_passes: 1
+  warmup: 0
+
 # Expected metric bands. The eval exits non-zero if anything falls outside.
+# Latency bands are deliberately permissive — the lesson is "it ran" / "shape
+# is right", not "it ran in <X> ms" (machines vary too much).
 expected_band:
   forward_ok: [1, 1]
   hidden_size_ok: [1, 1]
+  n_passes_ran: [1, 100000]
+  mean_latency_ms: [0.0, 600000.0]

@@ -38,9 +38,20 @@ Everything goes through `shared.backbones.load_backbone(name)` so the rest of th
 
 Files:
 
-- [`train.py`](./train.py) — actually a no-op for this class; it loads a backbone, prints its parameter count and a small forward-pass sanity check, then writes a `metrics.json` via `shared.eval_harness.run_eval`.
-- [`configs/default.yaml`](./configs/default.yaml) — backbone, prompt, expected output-shape band.
+- [`train.py`](./train.py) — loads a backbone, runs `iterations.n_passes` timed forward passes (after `iterations.warmup` untimed ones), then writes a `metrics.json` via `shared.eval_harness.run_eval`. Latency stats (mean, p50, p95, throughput) land in the result JSON's `extras` block.
+- [`configs/default.yaml`](./configs/default.yaml) — backbone, prompt, `iterations` block (defaults to one pass for the cheap-and-fast sanity check), expected band.
 - [`run.sh`](./run.sh) — one-line entrypoint.
+
+### Playing with multiple forward passes
+
+The default config runs one pass — fast sanity. Override at the CLI to benchmark:
+
+```bash
+python train.py --config configs/default.yaml \
+    iterations.n_passes=20 iterations.warmup=2
+```
+
+Expect mean latency ~1–5 ms on a warm GPU for MiniLM, ~10–30 ms for SmolLM2-360M. The first pass is always slower (cuDNN init); set `warmup>=1` to discard it.
 
 ### Gotchas
 - `AutoModel` returns the *backbone*, not a task head. For classification you want `AutoModelForSequenceClassification`; for generation, `AutoModelForCausalLM`.
@@ -72,5 +83,7 @@ The first run downloads ~22 MB into `.cache/huggingface/`.
 |---|---|---|---|
 | `forward_ok` | 1 | 1 | The forward pass returned a non-empty tensor |
 | `hidden_size_ok` | 1 | 1 | Reported hidden size > 0 |
+| `n_passes_ran` | 1 | 100000 | Sanity: the iteration loop actually ran |
+| `mean_latency_ms` | 0 | 600000 | Permissive — machines vary. The interesting number is in `extras.p50_latency_ms` and `throughput_passes_per_s`. |
 
 If `eval.py` exits non-zero, your install is broken — fix the env before moving on.
