@@ -1,0 +1,54 @@
+# Course 1 ch1 class1 — full FT encoder classification on AG News.
+#
+# Smoke vs full toggle is set by the `mode` field; override at the CLI:
+#   python train.py --config <this> mode=full
+# or via env in run.sh: MODE=full bash run.sh
+
+course: course1_finetuning
+class_id: chapter1_full_ft_class1_encoder_classification
+task: ag_news
+method: full-ft
+
+backbone: sentence-transformers/all-MiniLM-L6-v2
+seed: 42
+mode: smoke
+
+dataset:
+  hf_id: ag_news
+  split:
+    train: train
+    eval: test
+  text_field: text
+  label_field: label
+  num_labels: 4
+
+# Cap dataset sizes for smoke; null means "use the full split".
+limits:
+  smoke:
+    train: 1024
+    eval: 512
+  full:
+    train: null
+    eval: null
+
+train:
+  epochs: 1
+  per_device_batch: 16
+  grad_accum: 1
+  lr: 2.0e-5
+  weight_decay: 0.01
+  warmup_ratio: 0.1
+  max_len: 128
+  fp16: false
+  bf16: false
+  eval_strategy: "epoch"
+  save_strategy: "no"
+  log_steps: 50
+
+expected_band:
+  smoke:
+    accuracy: [0.70, 1.0]
+    f1_macro: [0.65, 1.0]
+  full:
+    accuracy: [0.88, 1.0]
+    f1_macro: [0.85, 1.0]

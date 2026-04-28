@@ -1,0 +1,19 @@
+# Sample grid for the sharded launcher.
+#
+# Run with: bash shared/sharded_run.sh courses/course1_finetuning/grids/lora_rank_sweep.yaml
+#
+# Sharded across CUDA 4-7 (configs/hardware.yaml) — one job per GPU.
+# Total cells = |backbones| * |ranks| * |seeds| = 2 * 3 * 2 = 12 jobs.
+
+script: courses/course1_finetuning/chapter2_lora/class1_decoder_lora/train.py
+
+fixed:
+  --config: courses/course1_finetuning/chapter2_lora/class1_decoder_lora/configs/default.yaml
+  mode: smoke
+
+grid:
+  backbone:
+    - HuggingFaceTB/SmolLM2-135M-Instruct
+    - HuggingFaceTB/SmolLM2-360M-Instruct
+  lora.r: [4, 16, 64]
+  seed: [42, 1337]

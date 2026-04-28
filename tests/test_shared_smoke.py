@@ -25,6 +25,7 @@ from shared import (
     logging_utils,
     paths,
     repro,
+    training,
 )
 
 
@@ -32,8 +33,27 @@ def test_imports_resolve():
     """All shared modules import cleanly (catches syntax / dep errors fast)."""
     assert all(
         m is not None
-        for m in [backbones, config, datasets, eval_harness, launcher, logging_utils, paths, repro]
+        for m in [
+            backbones, config, datasets, eval_harness,
+            launcher, logging_utils, paths, repro, training,
+        ]
     )
+
+
+def test_classification_metrics_perfect_and_random():
+    perfect = training.classification_metrics([0, 1, 2, 1], [0, 1, 2, 1])
+    assert perfect == {"accuracy": 1.0, "f1_macro": 1.0}
+    random = training.classification_metrics([0, 0, 0, 0], [0, 1, 0, 1])
+    assert random["accuracy"] == 0.5
+    assert 0.0 <= random["f1_macro"] <= 1.0
+
+
+def test_lora_rank_sweep_grid_expands_to_twelve():
+    lines = launcher.expand(
+        str(paths.project_root() / "courses/course1_finetuning/grids/lora_rank_sweep.yaml")
+    )
+    assert len(lines) == 12
+    assert all("train.py" in line for line in lines)
 
 
 def test_project_root_has_pyproject():
