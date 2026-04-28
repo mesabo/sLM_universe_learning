@@ -1,0 +1,83 @@
+# Course 2 ch3 class1 — Elastic Weight Consolidation (EWC).
+# Reuses the AG News -> Emotion sequence from ch1/ch2; adds Fisher snapshot + penalty.
+
+course: course2_continual
+class_id: chapter3_regularization_class1_ewc
+task: two_task
+method: ewc-l100000
+
+backbone: sentence-transformers/all-MiniLM-L6-v2
+seed: 42
+mode: smoke
+freeze_backbone: false
+
+tasks:
+  - name: ag_news
+    hf_id: ag_news
+    config: null
+    split:
+      train: train
+      eval: test
+    text_field: text
+    label_field: label
+    label_remap: {0: 0, 1: 1, 2: 2, 3: 3}
+
+  - name: emotion
+    hf_id: dair-ai/emotion
+    config: null
+    split:
+      train: train
+      eval: test
+    text_field: text
+    label_field: label
+    label_remap: {0: 0, 1: 1, 2: 2, 3: 3, 4: null, 5: null}
+
+num_labels: 4
+
+limits:
+  smoke:
+    train_per_task: 2048
+    eval_per_task: 512
+    epochs_per_task: 2
+  full:
+    train_per_task: null
+    eval_per_task: null
+    epochs_per_task: 3
+
+# EWC knobs.
+#   lambda             penalty weight; the dominant tuning knob.
+#   fisher_n_samples   how many Task A eval rows to use for Fisher; larger = lower variance.
+#   fisher_batch       batch size for the Fisher computation passes.
+ewc:
+  lambda: 100000.0
+  fisher_n_samples: 256
+  fisher_batch: 8
+
+train:
+  per_device_batch: 16
+  grad_accum: 1
+  lr: 5.0e-5
+  weight_decay: 0.01
+  warmup_ratio: 0.06
+  max_len: 128
+  bf16: true
+  fp16: false
+  log_steps: 25
+
+expected_band:
+  smoke:
+    avg_accuracy: [0.55, 1.0]
+    acc_A_after_A: [0.65, 1.0]
+    acc_B_after_B: [0.30, 1.0]
+    acc_A_after_B: [0.50, 1.0]
+    BWT: [-0.30, 0.10]
+    ewc_lambda: [0.0, 10000000.0]
+    fisher_mean: [0.0, 1000000.0]
+  full:
+    avg_accuracy: [0.65, 1.0]
+    acc_A_after_A: [0.85, 1.0]
+    acc_B_after_B: [0.55, 1.0]
+    acc_A_after_B: [0.60, 1.0]
+    BWT: [-0.30, 0.10]
+    ewc_lambda: [0.0, 1000000.0]
+    fisher_mean: [0.0, 1000000.0]
