@@ -1,0 +1,16 @@
+# Course 2 ch1 (no defense) baseline across the 3 encoder backbones.
+# 3 jobs, one per encoder backbone. Decoder backbones excluded by default
+# (causal LMs don't classify well in the smoke budget).
+
+script: courses/course2_continual/chapter1_measurement/class1_two_task_forgetting/train.py
+
+fixed:
+  --config: courses/course2_continual/chapter1_measurement/class1_two_task_forgetting/configs/default.yaml
+  mode: smoke
+
+grid:
+  backbone:
+    - sentence-transformers/all-MiniLM-L6-v2
+    - BAAI/bge-small-en-v1.5
+    - thenlper/gte-small
+  seed: [42]

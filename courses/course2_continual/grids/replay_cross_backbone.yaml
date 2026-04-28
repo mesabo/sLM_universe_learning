@@ -1,0 +1,15 @@
+# Course 2 ch2 (replay) across the 3 encoder backbones at the default ratio.
+
+script: courses/course2_continual/chapter2_replay/class1_simple_rehearsal/train.py
+
+fixed:
+  --config: courses/course2_continual/chapter2_replay/class1_simple_rehearsal/configs/default.yaml
+  mode: smoke
+  replay.ratio: 0.25
+
+grid:
+  backbone:
+    - sentence-transformers/all-MiniLM-L6-v2
+    - BAAI/bge-small-en-v1.5
+    - thenlper/gte-small
+  seed: [42]
