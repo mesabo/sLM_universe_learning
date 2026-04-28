@@ -63,6 +63,20 @@ Then end with:
 
 Prefer **official sources**: HuggingFace docs, original paper PDFs, official repos. Add extra links only when an official one doesn't exist.
 
+### Per-class instructor checklist
+
+Before marking a class "done", confirm each item below. The full checklist also lives at the end of every class README (auto-included via `courses/_template/class00_template/README.md`):
+
+- [ ] All four mode sections (Psycho / Academic / Engineering / Research) are present and ≥ 2 paragraphs each.
+- [ ] Every reference link points at an official source (paper / HF doc / repo) where one exists.
+- [ ] `train.py` and `eval.py` contain no numeric literal other than `0` / `1` (everything in `configs/*.yaml`).
+- [ ] `configs/default.yaml` declares an `expected_band` for every metric written by `eval.py`.
+- [ ] `run.sh` uses `HF_HOME=$PWD/.cache/huggingface` and is `chmod +x`.
+- [ ] `exercises.md` has exactly three exercises (warm-up / apply / stretch).
+- [ ] Result JSON path matches the layout `results/full/<backbone>/<course>/<class>/<task>/<method>.json`.
+- [ ] At least one smoke-mode run completed end-to-end and the metric band passes.
+- [ ] Linked from the parent course `README.md` table.
+
 ---
 
 ## Code rules
@@ -98,13 +112,12 @@ All experiments evaluated across all five (where applicable). Results land at `r
 
 ## When in doubt
 
-- Start a class with the `class00_template/` skeleton (when it exists) and never deviate from the four-mode + how-to-run + how-to-verify structure.
+- Start a class with the `class00_template/` skeleton (`courses/_template/class00_template/`) and never deviate from the four-mode + how-to-run + how-to-verify structure.
 - Smoke test before launching anything heavy.
+- Ask the user before destructive actions (rm, force-push, env destroy).
 
 ## Supervision TODOs
 
-- [ ] Confirm the `four-mode` README template exists in `class00_template/` and is referenced by maintainers.
-- [ ] Add per-class instructor checklist examples (short bullets) under the pedagogical contract.
-- [ ] Ensure the `no AI trace` rules are copied to `learning_llms_codex` README for consistency.
-
-- Ask the user before destructive actions (rm, force-push, env destroy).
+- [x] Confirm the `four-mode` README template exists in `class00_template/` and is referenced by maintainers. *(Done — `courses/_template/class00_template/` exists with the four-mode README, configs, train.py, eval.py, run.sh, exercises.md; referenced from this `CLAUDE.md` under "When in doubt".)*
+- [x] Add per-class instructor checklist examples (short bullets) under the pedagogical contract. *(Done — see "Per-class instructor checklist" above. The same checklist is embedded in the template README so it lands in every new class.)*
+- [ ] Ensure the `no AI trace` rules are copied to `learning_llms_codex` README for consistency. *(Skipped by Claude — `learning_llms_codex/` is owned by Codex and the binding rule under "Shared parent directory" forbids writing there. The user should propagate this to Codex's repo, or assign the task to Codex itself.)*
