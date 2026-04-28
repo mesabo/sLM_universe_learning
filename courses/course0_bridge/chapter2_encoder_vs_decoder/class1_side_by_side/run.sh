@@ -9,6 +9,7 @@ cd "${PROJECT_ROOT}"
 
 export HF_HOME="${HF_HOME:-${PROJECT_ROOT}/.cache/huggingface}"
 export TOKENIZERS_PARALLELISM="${TOKENIZERS_PARALLELISM:-false}"
+export PYTHONPATH="${PROJECT_ROOT}${PYTHONPATH:+:$PYTHONPATH}"
 
 CONFIG="courses/course0_bridge/chapter2_encoder_vs_decoder/class1_side_by_side/configs/default.yaml"
 python courses/course0_bridge/chapter2_encoder_vs_decoder/class1_side_by_side/train.py --config "${CONFIG}"
