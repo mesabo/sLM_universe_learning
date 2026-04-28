@@ -37,16 +37,30 @@ def main() -> None:
     if n_passes < 1:
         raise ValueError(f"iterations.n_passes must be >= 1, got {n_passes}")
 
-    prompt = cfg["prompt"]
+    prompts = _resolve_prompts(cfg)
+    log.info("prompts: %d (cycled across passes)", len(prompts))
 
-    enc_metrics = _encoder_step(cfg["encoder_backbone"], prompt, n_passes, warmup, log)
+    enc_metrics = _encoder_step(cfg["encoder_backbone"], prompts, n_passes, warmup, log)
     _emit(cfg, cfg["encoder_backbone"], enc_metrics)
 
-    dec_metrics = _decoder_step(cfg["decoder_backbone"], prompt, cfg["generation"],
+    dec_metrics = _decoder_step(cfg["decoder_backbone"], prompts, cfg["generation"],
                                 n_passes, warmup, log)
     _emit(cfg, cfg["decoder_backbone"], dec_metrics)
 
     log.info("done")
+
+
+def _resolve_prompts(cfg: dict) -> list[str]:
+    """Accept either `prompts: [list]` (preferred) or `prompt: "..."` (legacy)."""
+    raw = cfg.get("prompts")
+    if raw is None:
+        single = cfg.get("prompt")
+        if single is None:
+            raise ValueError("config must define either `prompts: [...]` or `prompt: \"...\"`")
+        raw = [single]
+    if not isinstance(raw, list) or not raw:
+        raise ValueError(f"`prompts` must be a non-empty list of strings, got {raw!r}")
+    return [str(p) for p in raw]
 
 
 def _emit(cfg: dict, backbone: str, metrics: dict[str, float]) -> None:
@@ -77,33 +91,39 @@ def _percentile(values: list[float], q: float) -> float:
     return s[lo] * (1 - frac) + s[hi] * frac
 
 
-def _time_n(fn, n_passes: int, warmup: int) -> tuple[list[float], object]:
-    """Run fn() warmup + n_passes times; return (latencies_ms, last_result)."""
+def _time_n(fn_of_prompt, prompts: list[str], n_passes: int, warmup: int):
+    """Run fn(prompt) warmup + n_passes times, cycling through prompts.
+
+    Returns (latencies_ms, prompt_indices, last_result).
+    """
     last = None
-    for _ in range(warmup):
-        last = fn()
+    for w in range(warmup):
+        last = fn_of_prompt(prompts[w % len(prompts)])
     latencies: list[float] = []
-    for _ in range(n_passes):
+    indices: list[int] = []
+    for i in range(n_passes):
+        idx = i % len(prompts)
         t0 = time.perf_counter()
-        last = fn()
+        last = fn_of_prompt(prompts[idx])
         latencies.append((time.perf_counter() - t0) * 1000.0)
-    return latencies, last
+        indices.append(idx)
+    return latencies, indices, last
 
 
-def _encoder_step(name: str, prompt: str, n_passes: int, warmup: int, log) -> dict:
+def _encoder_step(name: str, prompts: list[str], n_passes: int, warmup: int, log) -> dict:
     log.info("[encoder] loading %s", name)
     bb = load_backbone(name)
     if bb.kind == "decoder":
         raise ValueError(f"Expected encoder/sentence-encoder, got decoder for {name}")
 
-    def _once():
+    def _once(p: str):
         return (
-            bb.model.encode(prompt, convert_to_tensor=True)
+            bb.model.encode(p, convert_to_tensor=True)
             if bb.kind == "sentence-encoder"
-            else _encoder_pool(bb, prompt)
+            else _encoder_pool(bb, p)
         )
 
-    latencies, emb = _time_n(_once, n_passes, warmup)
+    latencies, indices, emb = _time_n(_once, prompts, n_passes, warmup)
     dim = int(emb.shape[-1])
     mean_ms = statistics.fmean(latencies)
     log.info("[encoder] dim=%d hidden=%d norm=%.4f n=%d mean=%.2fms p95=%.2fms",
@@ -120,7 +140,10 @@ def _encoder_step(name: str, prompt: str, n_passes: int, warmup: int, log) -> di
             "p50_latency_ms": float(statistics.median(latencies)),
             "p95_latency_ms": float(_percentile(latencies, 0.95)),
             "throughput_passes_per_s": float(1000.0 / mean_ms) if mean_ms > 0 else 0.0,
+            "n_prompts": len(prompts),
+            "prompts": prompts,
             "latencies_ms": [round(x, 3) for x in latencies],
+            "prompt_indices": indices,
         },
     }
 
@@ -134,7 +157,7 @@ def _encoder_pool(bb, prompt: str):
     return out.last_hidden_state.mean(dim=1).squeeze(0)
 
 
-def _decoder_step(name: str, prompt: str, gen_cfg: dict,
+def _decoder_step(name: str, prompts: list[str], gen_cfg: dict,
                   n_passes: int, warmup: int, log) -> dict:
     import torch
 
@@ -143,19 +166,20 @@ def _decoder_step(name: str, prompt: str, gen_cfg: dict,
     if bb.kind != "decoder":
         raise ValueError(f"Expected decoder, got {bb.kind} for {name}")
 
-    inputs = bb.tokenizer(prompt, return_tensors="pt").to(bb.model.device)
-
-    def _once():
+    def _once(p: str):
+        inputs = bb.tokenizer(p, return_tensors="pt").to(bb.model.device)
         with torch.no_grad():
-            return bb.model.generate(
+            out_ids = bb.model.generate(
                 **inputs,
                 max_new_tokens=gen_cfg["max_new_tokens"],
                 do_sample=gen_cfg.get("do_sample", False),
                 temperature=gen_cfg.get("temperature", 1.0),
                 pad_token_id=bb.tokenizer.eos_token_id,
             )
+        return out_ids, inputs
 
-    latencies, out_ids = _time_n(_once, n_passes, warmup)
+    latencies, indices, last = _time_n(_once, prompts, n_passes, warmup)
+    out_ids, inputs = last
     new_tokens = int(out_ids.shape[-1] - inputs["input_ids"].shape[-1])
     text = bb.tokenizer.decode(out_ids[0], skip_special_tokens=True)
     mean_ms = statistics.fmean(latencies)
@@ -174,7 +198,10 @@ def _decoder_step(name: str, prompt: str, gen_cfg: dict,
             "p95_latency_ms": float(_percentile(latencies, 0.95)),
             "throughput_passes_per_s": float(1000.0 / mean_ms) if mean_ms > 0 else 0.0,
             "tokens_per_second": float(new_tokens * 1000.0 / mean_ms) if mean_ms > 0 else 0.0,
+            "n_prompts": len(prompts),
+            "prompts": prompts,
             "latencies_ms": [round(x, 3) for x in latencies],
+            "prompt_indices": indices,
         },
     }
 
