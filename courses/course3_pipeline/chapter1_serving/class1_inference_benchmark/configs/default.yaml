@@ -1,0 +1,43 @@
+# Course 3 ch1 class1 — inference fundamentals on SmolLM2.
+
+course: course3_pipeline
+class_id: chapter1_serving_class1_inference_benchmark
+task: inference
+method: bench-b8
+
+backbone: HuggingFaceTB/SmolLM2-135M-Instruct
+seed: 42
+mode: smoke
+
+# Single prompt cycled through the benchmarks. List form so you can sweep:
+prompts:
+  - "In one sentence, what is a small language model?"
+
+batches:
+  single_n_passes: 8           # how many timed single-request passes
+  batch_size: 8                # batched inference: this many copies in one generate call
+  batched_n_passes: 4          # how many timed batched passes
+  warmup: 2                    # untimed passes before each timed run
+
+generation:
+  max_new_tokens: 64
+  min_new_tokens: 32     # force at least N decode steps so the prefill/decode split is meaningful
+  do_sample: false
+  temperature: 1.0
+  use_chat_template: true   # render prompts through tokenizer.apply_chat_template before generate
+
+expected_band:
+  smoke:
+    single_request_latency_ms: [0.0, 600000.0]
+    batched_latency_ms: [0.0, 600000.0]
+    tokens_per_second: [0.0, 100000.0]
+    prefill_time_ms: [0.0, 600000.0]
+    mean_decode_per_token_ms: [0.0, 100000.0]
+    prefill_fraction: [0.0, 1.0]
+  full:
+    single_request_latency_ms: [0.0, 600000.0]
+    batched_latency_ms: [0.0, 600000.0]
+    tokens_per_second: [0.0, 100000.0]
+    prefill_time_ms: [0.0, 600000.0]
+    mean_decode_per_token_ms: [0.0, 100000.0]
+    prefill_fraction: [0.0, 1.0]
