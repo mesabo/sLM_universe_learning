@@ -6,14 +6,18 @@
 
 ## Psycho — the mental model
 
-A tokenizer is **a deterministic codec**: text ⇄ list of integer IDs. It has *no learning* at inference time. Its only state is:
+> **One-line takeaway:** the tokenizer is the *protocol layer*. Get it wrong and the model sees garbage; get it right and the model "speaks" your data.
+
+Many newcomers assume the tokenizer is some magical part of the model — it isn't. **It's a fixed lookup table plus a few merge rules**, frozen the moment the model was pretrained. There's nothing to train at inference time; it's just a deterministic codec mapping text ⇄ list of integer IDs. Its only state is:
 
 - A **vocabulary** (a fixed map of subwords → integer IDs).
-- **Merge rules** (BPE / WordPiece / Unigram — how it splits text).
-- **Special tokens** (`<s>`, `</s>`, `<pad>`, `<|im_start|>`, …).
-- A **chat template** (only for instruction-tuned decoders) — a Jinja string that renders a message list into the model's expected wire format.
+- **Merge rules** (BPE / WordPiece / Unigram — different algorithms for how it splits text into pieces).
+- **Special tokens** (`<s>`, `</s>`, `<pad>`, `<|im_start|>`, …) — the punctuation of the protocol.
+- A **chat template** (only for instruction-tuned decoders) — a Jinja template that renders a message list into the exact text format the model was trained to expect.
 
-Mental model: think of it as the protocol layer. Get it wrong and the model sees garbage; get it right and the model "speaks" your data.
+If you're ever debugging a model that "should know better", check the tokenizer first. The most common silent bug is **using the wrong chat template** — the model sees subtly different text than during its instruction-tuning and the responses degrade quietly, with no error.
+
+**Common confusion to head off:** "Why aren't all subwords whole words?" Because vocabularies are size-bounded (~30k–100k pieces). A subword is the algorithm's compromise — common words stay whole, rare words get split into pieces. That's why `cat` is one token but `cataphysical` might be three.
 
 ## Academic — what's actually happening
 

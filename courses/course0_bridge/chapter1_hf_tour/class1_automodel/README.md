@@ -6,13 +6,17 @@
 
 ## Psycho — the mental model
 
-Think of Hugging Face as **three concentric layers**:
+> **One-line takeaway:** Hugging Face is a *catalog plus three power tools*. Learn what each tool does once, and you stop copy-pasting.
 
-1. **The hub** — a giant lookup table of (`name → weights + config + tokenizer`). You only need the *name* and the right `Auto*` class. Examples in this course: `sentence-transformers/all-MiniLM-L6-v2`, `HuggingFaceTB/SmolLM2-135M-Instruct`.
-2. **The model classes** — `AutoModel`, `AutoModelForCausalLM`, `AutoModelForSequenceClassification`, … each one wires a *task head* on top of the same backbone.
-3. **The trainer/pipeline** — `pipeline()` for one-line inference; `Trainer` for one-call training; custom loops when you outgrow `Trainer` (Course 1 onwards).
+When students first open the `transformers` source they see thousands of classes and freeze. The trick is to notice that almost all of them sort into **three concentric layers**:
 
-**Mental shortcut:** every line you write is one of *load → tokenize → forward → decode*. Most bugs are at the seams between two of those.
+1. **The hub** — a giant lookup table of (`name → weights + config + tokenizer`). You only need the *name* and the right `Auto*` class. Examples used throughout this course: `sentence-transformers/all-MiniLM-L6-v2`, `HuggingFaceTB/SmolLM2-135M-Instruct`.
+2. **The model classes** — `AutoModel`, `AutoModelForCausalLM`, `AutoModelForSequenceClassification`, … each one wires a *task head* on top of the same backbone. Pick the head that matches your job.
+3. **The trainer/pipeline** — `pipeline()` for one-line inference, `Trainer` for one-call training, custom loops when you outgrow `Trainer` (Course 1 onwards).
+
+**The four-verb shortcut.** Every line you write does one of *load → tokenize → forward → decode*. Most bugs live at the seams between two consecutive verbs (e.g. "I tokenized but forgot to move the tensors to the same device as the model"). When something breaks, ask: *"which seam am I at?"* — it's almost always faster than re-reading the stack trace.
+
+**Common confusion to head off:** `AutoModel` is **not** the model — it's the *factory*. The thing it returns is the actual `BertModel` (or `LlamaModel`, etc.) under the hood. So an `isinstance(model, AutoModel)` check will fail; that's expected.
 
 ## Academic — what's actually happening
 

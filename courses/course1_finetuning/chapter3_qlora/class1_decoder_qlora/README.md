@@ -6,15 +6,19 @@
 
 ## Psycho — the mental model
 
-Three layers stacked:
+> **One-line takeaway:** *LoRA changed which params you **train**; QLoRA changed which params you **store**.* The two ideas are orthogonal and compose perfectly.
+
+QLoRA is what lets students with one consumer GPU train models that "should" need a server. The trick is to shrink the part you're not editing anyway. Three layers stacked:
 
 1. **The base model lives in 4-bit memory** (~90 MB for SmolLM2-360M instead of ~720 MB in bf16). Forward passes dequantize to bf16 on the fly.
-2. **LoRA adapters stay in bf16** and receive gradients normally.
-3. **The optimizer state lives in bf16** for the LoRA params only — paged optimizers (`paged_adamw_8bit`) keep optimizer state spillable to CPU.
+2. **LoRA adapters stay in bf16** and receive gradients normally — these are the only params learning.
+3. **The optimizer state lives in bf16 for the LoRA params only** — paged optimizers (`paged_adamw_8bit`) keep optimizer state spillable to CPU memory when GPU is tight.
 
-Net effect: you can fit & train a much larger base on the same GPU, at the cost of slower steps (dequantization isn't free) and a small quality hit from quantization noise.
+Net effect: you can fit & train a much larger base on the same GPU, at the cost of slightly slower steps (dequantization isn't free) and a small quality hit from quantization noise.
 
-Mental shortcut: **LoRA changed which params you train; QLoRA changed which params you store.** They're orthogonal and stack cleanly.
+The intuition that helps: **the base is a *constant*, not a variable**. You're not editing those weights, you're just using them in forward passes. Storing a constant in 4-bit is fine; storing the *thing being learned* in 4-bit would lose precision in the gradients.
+
+**Common confusion to head off:** "Why doesn't 4-bit destroy the model?" Because (a) the dequantization is per-block with learned scales (NF4 is information-theoretically optimal for normally-distributed weights), and (b) the LoRA adapters in bf16 absorb the quantization noise during fine-tuning. The QLoRA paper showed this matches full bf16 fine-tuning on most benchmarks.
 
 ## Academic — what's happening
 

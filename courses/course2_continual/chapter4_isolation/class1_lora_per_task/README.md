@@ -6,13 +6,16 @@
 
 ## Psycho — the mental model
 
-Replay (ch2) and EWC (ch3) both let Task B's training **edit the same weights** that learned Task A — the question is just how much we constrain those edits. Parameter isolation says: don't constrain at all, just **don't share the weights in the first place**.
+> **One-line takeaway:** stop arguing about *how much* Task B is allowed to edit Task A's parameters — just *don't share the parameters in the first place*. BWT becomes zero because there's no mechanism for forgetting to occur.
 
-Concretely: the base encoder stays frozen. Each task gets:
+Replay (ch2) and EWC (ch3) both let Task B's training edit the same weights that learned Task A — they only differ in *how much* they constrain those edits. Parameter isolation gives up on that argument entirely. The base encoder stays frozen forever (it's the *shared knowledge*); each task gets its own private parameters (the *task-specific bits*):
+
 - Its own LoRA adapter (small, ~0.3% of params, plugged into the attention projections).
 - Its own classification head (~1% of params, mapping pooled output → labels).
 
-When you evaluate Task A, you swap to adapter_A + head_A. When you evaluate Task B, you swap to adapter_B + head_B. The base encoder's pretrained features are shared (cheap, no forgetting); the task-specific bits are private (no interference).
+When you evaluate Task A, you swap to adapter_A + head_A. When you evaluate Task B, you swap to adapter_B + head_B. The base encoder's pretrained features are shared across tasks (cheap, no forgetting); the task-specific deltas are private (no interference). Forgetting is mathematically impossible because the parameters that defined Task A are never touched while learning Task B.
+
+The cleanness comes at a real cost: there's no positive transfer either. EWC and replay let Task B's gradients influence Task A's weights, which sometimes *helps* Task A (the model finds a representation that serves both). Isolation forbids that by construction.
 
 **Pros:**
 - BWT ≈ 0 *by design* — there's no mechanism for Task B to overwrite Task A.

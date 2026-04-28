@@ -6,13 +6,18 @@
 
 ## Psycho — the mental model
 
-A pre-trained encoder gives you **already-meaningful sentence vectors**. To use it for a task, you only need to teach a small head to map "vector → label". When you do *full* fine-tuning, you also let the encoder itself drift to make those vectors more discriminative for *your* task.
+> **One-line takeaway:** the pretrained encoder is a *gift of already-meaningful vectors* — full fine-tuning teaches it new tricks at the cost of forgetting old ones.
 
-Trade-off:
-- **Head only** (a.k.a. linear probe): cheap, never forgets the base, often worse on the task.
-- **Full fine-tuning**: best task accuracy, but you've now created a single-task model — the original encoder is gone unless you saved it.
+When students see "fine-tune the encoder + classification head", they often miss that **the encoder is doing 99% of the work and the head is doing 1%**. A pretrained encoder gives you sentence vectors that already cluster news-style text apart from review-style text, even before you've shown it a single label. The head just learns to draw the decision boundary in the existing vector space. *Most* of the accuracy comes from the encoder; the head is the cheap part.
 
-Course 2 will show how to keep both worlds (param isolation, LoRA, replay).
+The trade-off has two clean ends:
+
+- **Head-only training (linear probe)**: cheap, fast, the original encoder is preserved bit-for-bit. Usually a few accuracy points behind full fine-tuning. The right choice when you'll deploy the encoder for several tasks.
+- **Full fine-tuning** (this class): best per-task accuracy, but you've now created a single-task model — the encoder has drifted. If you didn't save the original weights, they're gone.
+
+Course 2 is the whole story of how to keep both worlds — replay, EWC, LoRA-per-task. For now, just notice the trade-off and pick the regime your application actually needs.
+
+**Common confusion to head off:** "Why bother with full FT if linear probe is so close?" Two reasons: (1) on out-of-distribution test data, the FT'd encoder's vectors are usually better-separated, and (2) at the larger end of "small" models, FT can still buy 5–10 accuracy points. Try both at exercise 2 and form your own intuition.
 
 ## Academic — what's happening
 
