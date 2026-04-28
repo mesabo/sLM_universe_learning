@@ -71,16 +71,18 @@ expected_band:
   smoke:
     avg_accuracy: [0.50, 1.0]
     acc_A_after_A: [0.55, 1.0]
-    acc_B_after_B: [0.35, 1.0]
     acc_A_after_B: [0.55, 1.0]
+    acc_B_after_A: [0.0, 1.0]   # zero-shot on B before training; permissive
+    acc_B_after_B: [0.35, 1.0]
     BWT: [-0.05, 0.05]
     n_adapters: [2, 2]
     trainable_ratio_pct: [0.0, 5.0]
   full:
     avg_accuracy: [0.80, 1.0]
     acc_A_after_A: [0.85, 1.0]
-    acc_B_after_B: [0.65, 1.0]
     acc_A_after_B: [0.85, 1.0]
+    acc_B_after_A: [0.0, 1.0]   # zero-shot on B before training; permissive
+    acc_B_after_B: [0.65, 1.0]
     BWT: [-0.05, 0.05]
     n_adapters: [2, 2]
     trainable_ratio_pct: [0.0, 5.0]
