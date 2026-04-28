@@ -1,0 +1,48 @@
+# Course 2 ch5 class1 — synthesis aggregator config.
+
+course: course2_continual
+class_id: chapter5_recipes_class1_synthesis
+task: two_task
+method: synthesis
+
+# This class doesn't load a backbone — but the eval harness expects one.
+# Use a sentinel name so the result JSON lives at a stable path.
+backbone: _aggregator_
+seed: 42
+mode: smoke
+
+# Where to look for ch1-4 result JSONs to aggregate.
+# The default scans every backbone's course2_continual two_task results.
+glob:
+  pattern: "results/full/**/course2_continual/**/two_task/*.json"
+
+# Which classes (by class_id substring) to include in the table.
+# Skip the synthesis class itself to avoid recursive rows.
+include_class_substrings:
+  - chapter1_measurement
+  - chapter2_replay
+  - chapter3_regularization
+  - chapter4_isolation
+exclude_class_substrings:
+  - chapter5_recipes
+
+# Columns to include in the Markdown table (must exist in metrics block).
+columns:
+  - acc_A_after_A
+  - acc_A_after_B
+  - acc_B_after_B
+  - BWT
+  - avg_accuracy
+
+# Where to write the rendered Markdown table (in addition to stdout).
+output_md: "results/full/_aggregator_/course2_continual/chapter5_recipes_class1_synthesis/two_task/table.md"
+
+expected_band:
+  smoke:
+    n_methods_aggregated: [1, 100]
+    unique_methods: [1, 100]
+    unique_backbones: [1, 100]
+  full:
+    n_methods_aggregated: [4, 100]
+    unique_methods: [4, 100]
+    unique_backbones: [1, 100]

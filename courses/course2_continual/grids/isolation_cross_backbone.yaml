@@ -1,0 +1,14 @@
+# Course 2 ch4 (LoRA-per-task isolation) across the 3 encoder backbones.
+
+script: courses/course2_continual/chapter4_isolation/class1_lora_per_task/train.py
+
+fixed:
+  --config: courses/course2_continual/chapter4_isolation/class1_lora_per_task/configs/default.yaml
+  mode: smoke
+
+grid:
+  backbone:
+    - sentence-transformers/all-MiniLM-L6-v2
+    - BAAI/bge-small-en-v1.5
+    - thenlper/gte-small
+  seed: [42]

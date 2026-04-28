@@ -8,6 +8,6 @@ Catastrophic forgetting is the phenomenon where a neural net, after being fine-t
 | `chapter2_replay/` *(v3)* | Experience replay, mixing ratios | The cheapest defense, often the strongest |
 | `chapter3_regularization/` | EWC / MAS / L2-SP — penalize drift in important params | The historical workhorse; teaches Fisher information |
 | `chapter4_isolation/` | Parameter isolation: LoRA per task, multi-adapter loading | The modern PEFT-era answer |
-| `chapter5_recipes/` *(v3)* | Combine ch2-4, ablation matrix across all 5 backbones | Show what actually wins |
+| `chapter5_recipes/` | Synthesis: aggregate ch1–4 results into one table; cross-backbone grids | Show what actually wins |
 
 Every chapter uses the metrics defined in `shared/continual.py` (BWT / FWT / average accuracy from Lopez-Paz & Ranzato, NeurIPS 2017). Results land at `results/full/<backbone>/course2_continual/<class>/<task>/<method>.json`.
