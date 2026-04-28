@@ -42,13 +42,23 @@ Files:
 - [`configs/default.yaml`](./configs/default.yaml) — backbone, prompt, `iterations` block (defaults to one pass for the cheap-and-fast sanity check), expected band.
 - [`run.sh`](./run.sh) — one-line entrypoint.
 
-### Playing with multiple forward passes
+### Playing with multiple forward passes and varied input
 
-The default config runs one pass — fast sanity. Override at the CLI to benchmark:
+The default config ships with a 3-prompt list (short / medium / long) and `n_passes=1`. Override `iterations.n_passes` to cycle through the list:
+
+```bash
+# Single backbone, 6 passes (each prompt seen twice)
+python train.py --config configs/default.yaml \
+    iterations.n_passes=6 iterations.warmup=1
+```
+
+Per-pass `latency_ms` and a summary (mean / p50 / p95 / throughput) print to the log. The result JSON's `extras.prompt_indices[]` and `extras.latencies_ms[]` line up — you can compute per-prompt-length latency yourself.
+
+Use `prompts: [...]` (preferred) or the legacy `prompt: "..."` (single string). If both are set, `prompts` wins. To benchmark on your own prompts, override at the CLI:
 
 ```bash
 python train.py --config configs/default.yaml \
-    iterations.n_passes=20 iterations.warmup=2
+    'prompts=["foo","bar","baz"]' iterations.n_passes=12
 ```
 
 Expect mean latency ~1–5 ms on a warm GPU for MiniLM, ~10–30 ms for SmolLM2-360M. The first pass is always slower (cuDNN init); set `warmup>=1` to discard it.

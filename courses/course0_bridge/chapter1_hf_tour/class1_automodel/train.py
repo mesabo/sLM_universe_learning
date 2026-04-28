@@ -45,7 +45,8 @@ def main() -> None:
     log.info("kind=%s hidden=%d max_len=%d params_m=%d",
              bb.kind, bb.hidden_size, bb.max_len, bb.params_m)
 
-    prompt = cfg["prompt"]
+    prompts = _resolve_prompts(cfg)
+    log.info("prompts: %d (cycled across passes)", len(prompts))
     iterations = cfg.get("iterations", {})
     n_passes = int(iterations.get("n_passes", 1))
     warmup = int(iterations.get("warmup", 0))
@@ -53,20 +54,23 @@ def main() -> None:
         raise ValueError(f"iterations.n_passes must be >= 1, got {n_passes}")
 
     # Warmup — discard timing on these (cuDNN init, weight upload, etc.).
-    for _ in range(warmup):
-        _run_forward(bb, prompt)
+    for w in range(warmup):
+        _run_forward(bb, prompts[w % len(prompts)])
 
-    # Timed iterations.
+    # Timed iterations. Cycle through prompts so latency reflects input variety.
     latencies_ms: list[float] = []
+    prompt_indices: list[int] = []
     forward_ok = False
     for i in range(n_passes):
+        idx = i % len(prompts)
         t0 = time.perf_counter()
-        forward_ok = _run_forward(bb, prompt)
+        forward_ok = _run_forward(bb, prompts[idx])
         latency_ms = (time.perf_counter() - t0) * 1000.0
         latencies_ms.append(latency_ms)
+        prompt_indices.append(idx)
         if i == 0 or (i + 1) % max(1, n_passes // 5) == 0:
-            log.info("[pass %d/%d] forward_ok=%s latency_ms=%.2f",
-                     i + 1, n_passes, bool(forward_ok), latency_ms)
+            log.info("[pass %d/%d] prompt#%d forward_ok=%s latency_ms=%.2f",
+                     i + 1, n_passes, idx, bool(forward_ok), latency_ms)
 
     mean_ms = statistics.fmean(latencies_ms)
     p50_ms = statistics.median(latencies_ms)
@@ -93,10 +97,29 @@ def main() -> None:
             "p50_latency_ms": float(p50_ms),
             "p95_latency_ms": float(p95_ms),
             "throughput_passes_per_s": float(1000.0 / mean_ms) if mean_ms > 0 else 0.0,
+            "n_prompts": len(prompts),
+            "prompts": prompts,
             "latencies_ms": [round(x, 3) for x in latencies_ms],
+            "prompt_indices": prompt_indices,
         },
     )
     log.info("done")
+
+
+def _resolve_prompts(cfg: dict) -> list[str]:
+    """Accept either `prompts: [list]` (preferred) or `prompt: "..."` (legacy).
+
+    `prompts` wins if both are set. Empty list is rejected.
+    """
+    raw = cfg.get("prompts")
+    if raw is None:
+        single = cfg.get("prompt")
+        if single is None:
+            raise ValueError("config must define either `prompts: [...]` or `prompt: \"...\"`")
+        raw = [single]
+    if not isinstance(raw, list) or not raw:
+        raise ValueError(f"`prompts` must be a non-empty list of strings, got {raw!r}")
+    return [str(p) for p in raw]
 
 
 def _percentile(values: list[float], q: float) -> float:

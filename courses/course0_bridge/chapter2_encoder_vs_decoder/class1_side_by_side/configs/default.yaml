@@ -8,7 +8,12 @@ method: compare
 encoder_backbone: sentence-transformers/all-MiniLM-L6-v2
 decoder_backbone: HuggingFaceTB/SmolLM2-135M-Instruct
 
-prompt: "In one sentence, what is a small language model?"
+# Prompts cycled across iteration passes — same list feeds both encoder and decoder.
+# `prompt` (singular) is still accepted for backward compat; if both are set, `prompts` wins.
+prompts:
+  - "What is a small language model?"
+  - "In one sentence, what is a small language model?"
+  - "Explain in two paragraphs why small language models are useful for on-device inference, edge deployment, and privacy-preserving applications where round-trips to a cloud LLM would be slow or impossible."
 
 # Iteration knobs — applies to both encoder and decoder steps. Use n_passes>=5
 # to get useful latency stats; bump warmup on a cold GPU.

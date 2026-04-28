@@ -39,13 +39,13 @@ For each:
 - Encoder → encode the prompt to a vector → report dim and L2 norm.
 - Decoder → generate `max_new_tokens` tokens → report length and a preview.
 
-Both run `iterations.n_passes` timed passes (after `iterations.warmup` untimed ones). The result JSON's `extras` block carries `mean_latency_ms`, `p50_latency_ms`, `p95_latency_ms`, `throughput_passes_per_s`, and (for the decoder) `tokens_per_second`. Default is one pass — bump for benchmarking:
+Both run `iterations.n_passes` timed passes (after `iterations.warmup` untimed ones), cycling through the `prompts: [...]` list defined in the config (use the legacy `prompt: "..."` for a single string — `prompts` wins if both are set). The result JSON's `extras` block carries `mean_latency_ms`, `p50_latency_ms`, `p95_latency_ms`, `throughput_passes_per_s`, `tokens_per_second` (decoder), `prompts[]`, `latencies_ms[]`, and `prompt_indices[]` so per-prompt-length latency is recoverable. Default is one pass — bump for benchmarking:
 
 ```bash
-bash run.sh   # one-pass smoke
+bash run.sh   # one-pass smoke through prompt #0
 # or:
 python train.py --config configs/default.yaml \
-    iterations.n_passes=20 iterations.warmup=2
+    iterations.n_passes=12 iterations.warmup=2     # cycles through 3 prompts × 4 each
 ```
 
 We assert that the encoder's output vector dimension matches `hidden_size`, and that the decoder produced at least one token.
