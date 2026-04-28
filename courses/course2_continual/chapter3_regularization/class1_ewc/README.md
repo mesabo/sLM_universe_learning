@@ -6,15 +6,21 @@
 
 ## Psycho — the mental model
 
-Replay (ch2) prevents forgetting by **showing the model some of Task A while it learns Task B**. EWC prevents forgetting differently: it lets the model train freely on Task B but **adds a spring** pulling each parameter back toward its Task-A-trained value. The spring is stiffer for parameters that were *important* for Task A.
+> **One-line takeaway:** EWC attaches a *spring* to every parameter, anchored at its Task-A-trained value. Important params get stiffer springs; unimportant ones get weak ones — so the model is free to drift where it doesn't matter.
 
-How do we know which parameters were important? The **Fisher information matrix**: roughly, "how much does Task A's loss change when we wiggle this parameter?" Big Fisher → important → strong spring. Tiny Fisher → unimportant → weak spring (parameter free to repurpose for B).
+Replay (ch2) keeps Task A alive by *showing the model* some of Task A's data while it learns Task B. EWC takes a totally different route: don't show the data, just *constrain the parameters*. After training Task A, snapshot the weights, then add a quadratic penalty during Task B that punishes any parameter for moving away from its Task A value — but **scaled by how important that parameter was for A**.
 
-**Pros over replay:** no need to store Task A data. Useful when:
-- Privacy / license / deletion mandate forbids keeping data.
-- You only have model weights (not training data) for the prior task.
+The cleverness is in "how important". EWC uses the **Fisher information matrix**: roughly, *"how much does Task A's loss change when we wiggle this parameter?"* Big Fisher → important → strong spring. Tiny Fisher → unimportant → weak spring (parameter free to repurpose for B without penalty). It's a learned regularizer where the strength is per-parameter, not global.
 
-**Cons:** weaker than replay in practice; hyperparameter `λ` (penalty strength) is a knob that varies dramatically across tasks; requires extra GPU passes to compute Fisher.
+When to reach for EWC instead of replay:
+
+- **Privacy / license / deletion mandate** forbids keeping Task A's data → EWC needs only the gradient on Task A, not the data forever.
+- **You only have model weights**, not training data, for the prior task (e.g. you inherited a checkpoint).
+- **Lots of small tasks accumulating over time** — replay buffer storage grows linearly; EWC's anchor + Fisher are fixed-size per task.
+
+The catches: usually weaker BWT than replay in practice; `λ` (the spring stiffness) is the dominant tuning knob and varies dramatically across tasks; computing Fisher costs extra forward+backward passes on Task A.
+
+**Common confusion to head off:** "Why isn't this just L2 regularization toward θ_A?" Because plain L2 weights every parameter equally — it would prevent the model from learning B at all. The Fisher-weighted version says "I'm OK if you change unimportant parameters; I just don't want you to disturb the ones that did the heavy lifting on A". That selectivity is what makes EWC work.
 
 ## Academic — what's happening
 

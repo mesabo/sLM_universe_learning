@@ -6,10 +6,16 @@
 
 ## Psycho — the mental model
 
-- **Encoder sLMs** (MiniLM, BGE-small, GTE-small) are *understanders*. They map text → a fixed-size vector. Use them for retrieval, classification, clustering. They cannot generate text.
-- **Decoder sLMs** (SmolLM2-135M, SmolLM2-360M) are *speakers*. They map a prompt → next-token probabilities, which you sample to produce text. They can also be used as encoders by pooling hidden states, but it's wasteful.
+> **One-line takeaway:** encoders *condense*, decoders *extend*. The same Transformer block does both — what flips is the attention mask.
 
-Mnemonic: **encoders condense, decoders extend.**
+A common stumble for newcomers is treating "language model" as one thing. There are two families with very different jobs and very different APIs:
+
+- **Encoder sLMs** (MiniLM, BGE-small, GTE-small) are *understanders*. Read text once, return one fixed-size vector. Use them for retrieval, classification, clustering. **They cannot generate text** — there's no autoregressive loop and no LM head over the vocabulary.
+- **Decoder sLMs** (SmolLM2-135M, SmolLM2-360M) are *speakers*. Given a prompt, they predict the next token, then the next, then the next. You can squeeze an embedding out of one by pooling hidden states, but it's wasteful (you're paying for capacity that's there to predict next tokens).
+
+Pick the family that matches the *output* you want. If you want a vector → encoder. If you want a string → decoder. The course uses both because most real systems combine them (Course 1 ch6 RAG = encoder for retrieval + decoder for generation).
+
+**Common confusion to head off:** "Why not always use a decoder?" Because for retrieval, an encoder pretrained on contrastive pairs (like BGE/GTE) gives you a calibrated semantic vector, while a decoder-as-encoder gives you the model's *language-modeling* representation — which is good but not optimized for "are these two strings near each other?".
 
 ## Academic — the structural difference
 

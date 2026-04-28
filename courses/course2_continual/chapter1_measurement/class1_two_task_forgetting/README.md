@@ -6,13 +6,17 @@
 
 ## Psycho — the mental model
 
-Imagine a student who studies for the chemistry exam, aces it, then immediately crams for the history exam — and on Monday's chemistry retake they fail. The neurons that encoded chemistry got rewired for history. That is *catastrophic forgetting*: the model's parameters are a finite, shared resource, and gradient descent on Task B has no incentive to preserve Task A.
+> **One-line takeaway:** the model's parameters are a *finite, shared scratchpad*. Gradient descent on Task B has no incentive to preserve what was written there for Task A — so it overwrites.
 
-A few important nuances:
+Imagine a student who studies for the chemistry exam, aces it, then immediately crams for the history exam — and on Monday's chemistry retake they fail. The neurons that encoded chemistry got rewired for history. That is *catastrophic forgetting*. There's nothing pathological about it: gradient descent on Task B's loss only "knows" Task B; it has no signal that says "and please don't break Task A". Without that signal, the parameters drift toward whatever Task B rewards.
 
-- Forgetting is **task-dependent**: similar tasks (sentiment vs sentiment) interfere less than dissimilar ones (news classification vs question typing).
-- Forgetting is **recipe-dependent**: full fine-tuning forgets aggressively; LoRA forgets less; replay forgets even less; EWC penalizes drift in *important* parameters.
-- Forgetting is **measurable**: if you can't put a number on it, you can't fix it. That's what this class delivers.
+A few nuances students often miss:
+
+- Forgetting is **task-dependent.** Similar tasks (e.g. sentiment-vs-sentiment) interfere less than dissimilar ones (news classification vs question typing). The more the two tasks need different decision boundaries, the more drift you see.
+- Forgetting is **recipe-dependent.** Full fine-tuning forgets aggressively; LoRA forgets less (smaller delta); replay forgets even less (Task A is back in the loop); EWC penalizes drift in *important* parameters; isolation eliminates it. Each of those is a future chapter in this course.
+- Forgetting is **measurable.** If you can't put a number on it, you can't fix it. That's what this class delivers — the BWT / FWT / avg-acc trio that every continual-learning paper reports.
+
+**Common confusion to head off:** "Couldn't we just train on A and B together (joint training)?" Yes — and that's the upper bound. Continual learning is the constraint where you *can't* (e.g. Task B's data arrives later, or Task A's data was deleted). Otherwise, joint training wins.
 
 ## Academic — what's being measured
 

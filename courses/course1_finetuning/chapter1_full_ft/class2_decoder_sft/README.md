@@ -6,7 +6,9 @@
 
 ## Psycho — the mental model
 
-Supervised fine-tuning of a decoder is **next-token prediction with selective loss masking**. You take dialogues like:
+> **One-line takeaway:** SFT is *"show, don't tell"*. Same loss function as pretraining; you just curate the examples.
+
+Students often expect supervised fine-tuning to be some new kind of training. It isn't — it's exactly the same next-token-prediction loss the model was pretrained with. What changes is **what you let it see** and **which tokens count toward the loss**.
 
 ```
 [system]
@@ -17,9 +19,11 @@ Explain LoRA in two sentences.
 LoRA inserts low-rank adapters into the attention/FFN projections of a frozen base model, so you only train ~0.1% of params...
 ```
 
-You train the model to predict each *assistant* token given everything before it. **You do NOT train it to predict user/system tokens** — those are inputs, not targets. TRL's `SFTTrainer` handles this automatically when you pass a chat template.
+You train the model to predict each *assistant* token given everything before it. **You do NOT train it to predict user/system tokens** — those are inputs, not targets. TRL's `SFTTrainer` handles this masking automatically when you pass a chat template.
 
-Mental model: SFT is "show, don't tell". You're not changing the loss function; you're just showing the model more of the kind of completion you want.
+The instinct that helps most: imagine you're teaching by example, not by rule. You don't tell the model *"be concise and helpful"* — you show it 10000 examples of "user → concise helpful answer" and trust gradient descent to extract the pattern. SFT is curation more than coding.
+
+**Common confusion to head off:** "Why does the model still hallucinate after SFT?" Because SFT only teaches *style* and *format*; it doesn't insert new facts. New facts come from pretraining (frozen) or RAG (Course 1 ch6). If your SFT data implies "always give a confident answer", the model learns to do that even on questions it can't answer.
 
 ## Academic — what's happening
 

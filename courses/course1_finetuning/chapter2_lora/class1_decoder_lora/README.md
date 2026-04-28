@@ -6,14 +6,22 @@
 
 ## Psycho — the mental model
 
-Full fine-tuning **edits the original engine**. LoRA **slips a small bolt-on between the engine and the gear box** that learns to nudge the output. You can:
+> **One-line takeaway:** LoRA freezes the original engine and bolts on a *tiny tunable steering wheel*. The base never moves; only the bolt-on adapter learns.
 
-- Save many adapters per base (one per task / domain / customer).
-- Hot-swap adapters at inference time (`peft` does this in one call).
-- Avoid catastrophic forgetting (Course 2 ch4 uses this).
-- Train large models on small GPUs (chapter 3's QLoRA combines LoRA with 4-bit base).
+Full fine-tuning rewrites the original parameters of the model. That's powerful but expensive (you're moving ~135M numbers around) and dangerous (you've now lost the original; if you didn't checkpoint, the pretrained model is gone).
 
-Cost: a tiny representation-capacity hit vs full FT — usually negligible at our scale.
+LoRA's bet: **the change you need to apply is low-rank**. The full weight matrix has, say, 576×576 entries, but the *delta* you'd add for your task lives in a tiny rank-16 subspace. So instead of training the matrix, you train two small matrices `A` (16×576) and `B` (576×16); the effective update is `B @ A`. That's ~18× fewer parameters touched.
+
+What this buys you:
+
+- **Many adapters per base.** One per task, domain, or customer. Each adapter is a few MB.
+- **Hot-swap at inference.** `peft.set_adapter("name")` flips the active personality in microseconds.
+- **No catastrophic forgetting on the base.** The base's pretrained knowledge is preserved bit-for-bit because its parameters never updated. (Course 2 ch4 uses this property to isolate tasks.)
+- **Memory headroom for bigger models.** With LoRA you can train SmolLM2-360M on a 8 GB card — full FT couldn't fit. QLoRA (chapter 3) takes this further.
+
+The cost: a tiny capacity hit. At rank 16, you're saying "the optimal task delta lives in a 16-dimensional subspace". For most adaptation tasks that's plenty; for very different domains you might need rank 64+.
+
+**Common confusion to head off:** "If the base is frozen, how does the model learn anything new?" Because at every linear layer, the forward pass is now `(W + BA) @ x` instead of `W @ x`. The `BA` term is your trainable correction — small but in exactly the dimensions that matter, because gradient descent picks them.
 
 ## Academic — what's happening
 
