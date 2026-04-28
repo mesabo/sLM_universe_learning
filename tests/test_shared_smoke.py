@@ -19,6 +19,7 @@ import pytest
 from shared import (
     backbones,
     config,
+    continual,
     datasets,
     eval_harness,
     launcher,
@@ -34,10 +35,45 @@ def test_imports_resolve():
     assert all(
         m is not None
         for m in [
-            backbones, config, datasets, eval_harness,
+            backbones, config, continual, datasets, eval_harness,
             launcher, logging_utils, paths, repro, training,
         ]
     )
+
+
+def test_continual_history_and_metrics_two_tasks():
+    """Worked example: AG News → TREC sequential training with clear forgetting."""
+    h = continual.History()
+    h.add_stage(0, accuracies={0: 0.25, 1: 0.30})   # before training: ~random
+    h.add_stage(1, accuracies={0: 0.92, 1: 0.31})   # after task A: A learned, B unaffected
+    h.add_stage(2, accuracies={0: 0.55, 1: 0.88})   # after task B: B learned, A forgotten
+
+    s = continual.summarize(h)
+    assert s["n_tasks"] == 2
+    assert s["n_stages"] == 3
+    assert abs(s["avg_accuracy"] - (0.55 + 0.88) / 2) < 1e-9
+    # BWT = R[2][0] - R[1][0] = 0.55 - 0.92 = -0.37 (forgetting)
+    assert abs(s["BWT"] - (0.55 - 0.92)) < 1e-9
+    # FWT = R[1][1] - R[0][1] = 0.31 - 0.30 = +0.01 (negligible)
+    assert abs(s["FWT"] - (0.31 - 0.30)) < 1e-9
+
+
+def test_continual_stage_order_enforced():
+    h = continual.History()
+    h.add_stage(0, {0: 0.5})
+    with pytest.raises(ValueError):
+        h.add_stage(2, {0: 0.6})  # skipped stage 1
+
+
+def test_continual_handles_too_few_stages():
+    h = continual.History()
+    h.add_stage(0, {0: 0.5, 1: 0.5})
+    h.add_stage(1, {0: 0.9, 1: 0.5})
+    s = continual.summarize(h)
+    assert s["n_tasks"] == 2 and s["n_stages"] == 2
+    # Need T+1=3 stages for BWT/FWT; we have only 2.
+    assert s["BWT"] != s["BWT"]   # NaN
+    assert s["FWT"] != s["FWT"]   # NaN
 
 
 def test_classification_metrics_perfect_and_random():
