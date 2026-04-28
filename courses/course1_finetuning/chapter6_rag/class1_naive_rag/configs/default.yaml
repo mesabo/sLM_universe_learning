@@ -1,0 +1,57 @@
+# Course 1 ch6 class1 — naive RAG on rag-mini-bioasq.
+
+course: course1_finetuning
+class_id: chapter6_rag_class1_naive_rag
+task: bioasq
+method: rag-k5
+
+# `backbone` is the retriever (used as the result-JSON path). The decoder
+# is set separately so we can report retrieval results scoped to the encoder.
+backbone: sentence-transformers/all-MiniLM-L6-v2
+generator: HuggingFaceTB/SmolLM2-135M-Instruct
+seed: 42
+mode: smoke
+
+dataset:
+  corpus_hf_id: rag-datasets/rag-mini-bioasq
+  corpus_config: text-corpus
+  corpus_split: passages       # the only split in this config
+  corpus_id_field: id
+  corpus_text_field: passage
+
+  qa_hf_id: rag-datasets/rag-mini-bioasq
+  qa_config: question-answer-passages
+  qa_split: test
+  qa_question_field: question
+  qa_answer_field: answer
+  # `relevant_passage_ids` ships as a stringified list literal like
+  # "[123, 456, ...]" — train.py's _to_id_list normalizes it.
+  qa_relevant_ids_field: relevant_passage_ids
+
+retrieval:
+  top_k: 5
+
+generation:
+  max_new_tokens: 128
+  do_sample: false
+  temperature: 1.0
+
+limits:
+  smoke:
+    corpus_n: 2000
+    eval_n: 32
+  full:
+    corpus_n: null
+    eval_n: null
+
+expected_band:
+  smoke:
+    retrieval_recall_at_k: [0.10, 1.0]
+    answer_substring_match: [0.0, 1.0]
+    n_questions_evaluated: [1, 10000]
+    mean_top_passage_score: [0.0, 2.0]
+  full:
+    retrieval_recall_at_k: [0.30, 1.0]
+    answer_substring_match: [0.0, 1.0]
+    n_questions_evaluated: [1, 10000]
+    mean_top_passage_score: [0.0, 2.0]
