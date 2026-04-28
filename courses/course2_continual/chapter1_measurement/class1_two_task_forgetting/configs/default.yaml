@@ -64,12 +64,14 @@ expected_band:
   smoke:
     avg_accuracy: [0.50, 1.0]
     acc_A_after_A: [0.70, 1.0]
-    acc_B_after_B: [0.40, 1.0]
     acc_A_after_B: [0.0, 0.85]
+    acc_B_after_A: [0.0, 1.0]   # zero-shot on B before training; permissive
+    acc_B_after_B: [0.40, 1.0]
     BWT: [-1.0, -0.05]
   full:
     avg_accuracy: [0.65, 1.0]
     acc_A_after_A: [0.85, 1.0]
-    acc_B_after_B: [0.70, 1.0]
     acc_A_after_B: [0.0, 0.80]
+    acc_B_after_A: [0.0, 1.0]   # zero-shot on B before training; permissive
+    acc_B_after_B: [0.70, 1.0]
     BWT: [-1.0, -0.10]

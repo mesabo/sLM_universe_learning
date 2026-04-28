@@ -68,16 +68,18 @@ expected_band:
   smoke:
     avg_accuracy: [0.55, 1.0]
     acc_A_after_A: [0.65, 1.0]
-    acc_B_after_B: [0.30, 1.0]
     acc_A_after_B: [0.50, 1.0]
+    acc_B_after_A: [0.0, 1.0]   # zero-shot on B before training; permissive
+    acc_B_after_B: [0.30, 1.0]
     BWT: [-0.30, 0.10]
     ewc_lambda: [0.0, 10000000.0]
     fisher_mean: [0.0, 1000000.0]
   full:
     avg_accuracy: [0.65, 1.0]
     acc_A_after_A: [0.85, 1.0]
-    acc_B_after_B: [0.55, 1.0]
     acc_A_after_B: [0.60, 1.0]
+    acc_B_after_A: [0.0, 1.0]   # zero-shot on B before training; permissive
+    acc_B_after_B: [0.55, 1.0]
     BWT: [-0.30, 0.10]
     ewc_lambda: [0.0, 1000000.0]
     fisher_mean: [0.0, 1000000.0]
