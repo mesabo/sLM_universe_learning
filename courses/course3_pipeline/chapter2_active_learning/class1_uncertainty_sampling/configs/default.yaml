@@ -1,0 +1,65 @@
+# Course 3 ch2 class1 — active learning: uncertainty sampling vs random.
+
+course: course3_pipeline
+class_id: chapter2_active_learning_class1_uncertainty_sampling
+task: ag_news
+method: al-r4
+
+backbone: sentence-transformers/all-MiniLM-L6-v2
+seed: 42
+mode: smoke
+
+dataset:
+  hf_id: ag_news
+  split:
+    train: train
+    eval: test
+  text_field: text
+  label_field: label
+  num_labels: 4
+
+active:
+  # seed must be large enough that the first-round model has real signal —
+  # otherwise its "uncertainty" estimates collapse to log(num_labels) for every
+  # row and uncertainty sampling is just shuffled random.
+  seed_size: 256
+  query_size: 128     # examples added per round
+  n_rounds: 4         # number of acquisition rounds (per strategy)
+
+limits:
+  smoke:
+    pool_size: 2048   # cap the train pool we draw queries from
+    eval_size: 512    # cap the test set used for accuracy
+  full:
+    pool_size: null
+    eval_size: null
+
+train:
+  per_device_batch: 16
+  grad_accum: 1
+  lr: 5.0e-5
+  weight_decay: 0.01
+  warmup_ratio: 0.06
+  max_len: 128
+  bf16: true
+  fp16: false
+  log_steps: 25
+  epochs_per_round: 2
+
+expected_band:
+  smoke:
+    # Permissive — at small budgets naive max-entropy can lose to random
+    # (high-entropy examples are often noisy outliers). The pedagogical
+    # point of this class is to *see* that, not to assert active learning
+    # always wins. Exercise 2 (margin sampling) is where the win shows up.
+    final_accuracy_random: [0.40, 1.0]
+    final_accuracy_uncertainty: [0.20, 1.0]
+    delta_accuracy: [-0.50, 1.0]
+    n_rounds_completed: [1, 100]
+    final_label_budget: [1, 100000]
+  full:
+    final_accuracy_random: [0.75, 1.0]
+    final_accuracy_uncertainty: [0.40, 1.0]
+    delta_accuracy: [-0.30, 1.0]
+    n_rounds_completed: [1, 100]
+    final_label_budget: [1, 100000]
