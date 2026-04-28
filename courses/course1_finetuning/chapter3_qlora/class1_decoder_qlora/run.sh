@@ -10,6 +10,7 @@ cd "${PROJECT_ROOT}"
 
 export HF_HOME="${HF_HOME:-${PROJECT_ROOT}/.cache/huggingface}"
 export TOKENIZERS_PARALLELISM="${TOKENIZERS_PARALLELISM:-false}"
+export PYTHONPATH="${PROJECT_ROOT}${PYTHONPATH:+:$PYTHONPATH}"
 
 MODE="${MODE:-smoke}"
 CONFIG="courses/course1_finetuning/chapter3_qlora/class1_decoder_qlora/configs/default.yaml"

@@ -13,6 +13,7 @@ cd "${PROJECT_ROOT}"
 
 export HF_HOME="${HF_HOME:-${PROJECT_ROOT}/.cache/huggingface}"
 export TOKENIZERS_PARALLELISM="${TOKENIZERS_PARALLELISM:-false}"
+export PYTHONPATH="${PROJECT_ROOT}${PYTHONPATH:+:$PYTHONPATH}"
 
 MODE="${MODE:-smoke}"
 CONFIG="courses/<courseX>/<chapterY>/<classZ>/configs/default.yaml"

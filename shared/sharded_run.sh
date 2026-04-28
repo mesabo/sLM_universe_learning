@@ -26,6 +26,7 @@ cd "${PROJECT_ROOT}"
 # Project-local HF cache.
 export HF_HOME="${HF_HOME:-${PROJECT_ROOT}/.cache/huggingface}"
 export TOKENIZERS_PARALLELISM="${TOKENIZERS_PARALLELISM:-false}"
+export PYTHONPATH="${PROJECT_ROOT}${PYTHONPATH:+:$PYTHONPATH}"
 
 # Read hardware config (env override wins).
 if [[ -n "${CUDA_DEVICES:-}" ]]; then
