@@ -1,0 +1,19 @@
+# Sample grid for the sharded launcher: sweep replay ratio.
+#
+# Run with: bash shared/sharded_run.sh courses/course2_continual/grids/replay_ratio_sweep.yaml
+#
+# Sharded across CUDA 4-7 (configs/hardware.yaml) — one job per GPU.
+# Total cells = |ratios| * |seeds| = 4 * 1 = 4 jobs.
+#
+# train.py auto-derives `method=replay-r<ratio>` from `replay.ratio` so each
+# run lands at its own result JSON path — no manual pairing needed in this YAML.
+
+script: courses/course2_continual/chapter2_replay/class1_simple_rehearsal/train.py
+
+fixed:
+  --config: courses/course2_continual/chapter2_replay/class1_simple_rehearsal/configs/default.yaml
+  mode: smoke
+
+grid:
+  replay.ratio: [0.0, 0.1, 0.25, 0.5]
+  seed: [42]

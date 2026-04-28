@@ -1,0 +1,78 @@
+# Course 2 ch2 class1 — simple rehearsal/replay against catastrophic forgetting.
+# Mirrors ch1's two-task setup; adds a `replay.ratio` knob.
+
+course: course2_continual
+class_id: chapter2_replay_class1_simple_rehearsal
+task: two_task
+method: replay-r0.25
+
+backbone: sentence-transformers/all-MiniLM-L6-v2
+seed: 42
+mode: smoke
+freeze_backbone: false
+
+tasks:
+  - name: ag_news
+    hf_id: ag_news
+    config: null
+    split:
+      train: train
+      eval: test
+    text_field: text
+    label_field: label
+    label_remap: {0: 0, 1: 1, 2: 2, 3: 3}
+
+  - name: emotion
+    hf_id: dair-ai/emotion
+    config: null
+    split:
+      train: train
+      eval: test
+    text_field: text
+    label_field: label
+    label_remap: {0: 0, 1: 1, 2: 2, 3: 3, 4: null, 5: null}
+
+num_labels: 4
+
+limits:
+  smoke:
+    train_per_task: 2048
+    eval_per_task: 512
+    epochs_per_task: 2
+  full:
+    train_per_task: null
+    eval_per_task: null
+    epochs_per_task: 3
+
+# Replay knob — how much of Task A is mixed into Task B's training set.
+# 0.0 reproduces chapter 1's catastrophic baseline.
+# 1.0 is effectively joint training and a no-forgetting upper bound.
+replay:
+  ratio: 0.25
+
+train:
+  per_device_batch: 16
+  grad_accum: 1
+  lr: 5.0e-5
+  weight_decay: 0.01
+  warmup_ratio: 0.06
+  max_len: 128
+  bf16: true
+  fp16: false
+  log_steps: 25
+
+expected_band:
+  smoke:
+    avg_accuracy: [0.55, 1.0]
+    acc_A_after_A: [0.70, 1.0]
+    acc_B_after_B: [0.40, 1.0]
+    acc_A_after_B: [0.55, 1.0]
+    BWT: [-0.30, 0.10]
+    replay_ratio: [0.10, 1.0]
+  full:
+    avg_accuracy: [0.70, 1.0]
+    acc_A_after_A: [0.85, 1.0]
+    acc_B_after_B: [0.65, 1.0]
+    acc_A_after_B: [0.65, 1.0]
+    BWT: [-0.20, 0.10]
+    replay_ratio: [0.10, 1.0]

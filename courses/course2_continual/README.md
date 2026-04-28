@@ -5,7 +5,7 @@ Catastrophic forgetting is the phenomenon where a neural net, after being fine-t
 | Chapter | Topic | Why |
 |---|---|---|
 | `chapter1_measurement/` | Define the phenomenon, measure it (BWT / FWT / avg-acc) | Without numbers, you can't fix it |
-| `chapter2_replay/` *(v3)* | Experience replay, mixing ratios | The cheapest defense, often the strongest |
+| `chapter2_replay/` | Experience replay, mixing ratios | The cheapest defense, often the strongest |
 | `chapter3_regularization/` *(v3)* | EWC / MAS / L2-SP — penalize drift in important params | The historical workhorse; teaches Fisher information |
 | `chapter4_isolation/` *(v3)* | Parameter isolation: LoRA per task, multi-adapter loading | The modern PEFT-era answer |
 | `chapter5_recipes/` *(v3)* | Combine ch2-4, ablation matrix across all 5 backbones | Show what actually wins |
