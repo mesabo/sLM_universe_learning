@@ -10,6 +10,6 @@ The longest course. Six chapters, each one a different "knob" you can turn when 
 | `chapter4_dpo/` *(v2)* | Preference tuning (DPO / ORPO / KTO) | When labels become "A > B" instead of class indices |
 | `chapter5_embedding_ft/` | Sentence-encoder contrastive fine-tuning | Bring MiniLM/BGE/GTE up to your retrieval distribution |
 | `chapter6_rag/` *(v2)* | Retrieval-augmented generation | When NOT to fine-tune at all — and when to fine-tune the retriever |
-| `chapter7_eval_discipline/` *(v2)* | Held-out, contamination, per-(method, backbone) JSON matrix | Make results trustworthy |
+| `chapter7_eval_discipline/` | Audit existing result JSONs for missing seeds, missing bands, single-seed cells, path collisions | Make results trustworthy |
 
 Every chapter declares a metric band; results land at `results/full/<backbone>/course1_finetuning/<class>/<task>/<method>.json`.
