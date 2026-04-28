@@ -1,0 +1,58 @@
+# Course 1 ch4 class1 — DPO on SmolLM2-135M-Instruct against Intel/orca_dpo_pairs.
+
+course: course1_finetuning
+class_id: chapter4_dpo_class1_dpo_smollm2
+task: orca_dpo
+method: dpo-b0.1
+
+backbone: HuggingFaceTB/SmolLM2-135M-Instruct
+seed: 42
+mode: smoke
+
+dataset:
+  hf_id: Intel/orca_dpo_pairs
+  config: null
+  split: train
+  # Source columns; we rename to TRL's expected (prompt, chosen, rejected).
+  question_field: question
+  system_field: system
+  chosen_field: chosen
+  rejected_field: rejected
+  eval_holdout: 64
+
+limits:
+  smoke:
+    train: 512
+    max_steps: 50
+  full:
+    train: 8192
+    max_steps: 500
+
+dpo:
+  beta: 0.1                  # KL strength; lower => more drift from ref allowed
+  max_length: 1024
+  max_prompt_length: 512
+  loss_type: "sigmoid"       # standard DPO
+
+train:
+  per_device_batch: 2
+  grad_accum: 2
+  lr: 5.0e-6                 # DPO LR is ~10x lower than SFT LR
+  warmup_ratio: 0.1
+  weight_decay: 0.0
+  bf16: true
+  log_steps: 10
+
+expected_band:
+  smoke:
+    train_loss_final: [0.0, 0.7]
+    eval_loss: [0.0, 0.8]
+    rewards_margin: [0.0, 100.0]
+    rewards_accuracy: [0.50, 1.0]
+    loss_decreased: [1, 1]
+  full:
+    train_loss_final: [0.0, 0.5]
+    eval_loss: [0.0, 0.6]
+    rewards_margin: [0.0, 100.0]
+    rewards_accuracy: [0.55, 1.0]
+    loss_decreased: [1, 1]
