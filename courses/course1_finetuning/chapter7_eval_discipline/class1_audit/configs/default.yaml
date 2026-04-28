@@ -1,0 +1,36 @@
+# Course 1 ch7 class1 — eval discipline audit.
+
+course: course1_finetuning
+class_id: chapter7_eval_discipline_class1_audit
+task: discipline
+method: audit
+
+# Sentinel "_audit_" backbone — this class is a meta-tool, not bound to one model.
+backbone: _audit_
+seed: 42
+mode: smoke
+
+glob:
+  pattern: "results/full/**/*.json"
+
+# Exclude these substrings from class_id when checking single-seed cells.
+# Sanity classes (Course 0) don't benefit from seed sweeps.
+single_seed_excludes:
+  - chapter1_hf_tour
+  - chapter2_encoder_vs_decoder
+  - chapter3_tokenization
+  - class1_audit          # don't audit ourselves
+  - class1_synthesis      # the Course 2 ch5 aggregator is similar — also a meta-tool
+
+# Where to write the rendered Markdown report.
+output_md: "results/full/_audit_/course1_finetuning/chapter7_eval_discipline_class1_audit/discipline/report.md"
+
+expected_band:
+  smoke:
+    n_files_audited: [1, 100000]
+    n_unique_cells: [1, 100000]
+    n_violations: [0, 100000]
+  full:
+    n_files_audited: [1, 100000]
+    n_unique_cells: [1, 100000]
+    n_violations: [0, 100000]
