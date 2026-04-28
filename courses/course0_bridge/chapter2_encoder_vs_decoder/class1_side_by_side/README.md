@@ -39,6 +39,15 @@ For each:
 - Encoder → encode the prompt to a vector → report dim and L2 norm.
 - Decoder → generate `max_new_tokens` tokens → report length and a preview.
 
+Both run `iterations.n_passes` timed passes (after `iterations.warmup` untimed ones). The result JSON's `extras` block carries `mean_latency_ms`, `p50_latency_ms`, `p95_latency_ms`, `throughput_passes_per_s`, and (for the decoder) `tokens_per_second`. Default is one pass — bump for benchmarking:
+
+```bash
+bash run.sh   # one-pass smoke
+# or:
+python train.py --config configs/default.yaml \
+    iterations.n_passes=20 iterations.warmup=2
+```
+
 We assert that the encoder's output vector dimension matches `hidden_size`, and that the decoder produced at least one token.
 
 ## Research — open questions
@@ -66,3 +75,5 @@ First-time downloads: ~22 MB (MiniLM) + ~270 MB (SmolLM2-135M).
 | `output_ok` | 1 | 1 | Forward / generation produced output |
 | `dim_matches_hidden` | 1 | 1 | Encoder vector dim equals reported hidden_size (encoder only, ignored for decoders) |
 | `tokens_generated` | 1 | 256 | Decoder produced ≥ 1 new token (decoder only) |
+| `n_passes_ran` | 1 | 100000 | Sanity: the iteration loop actually ran |
+| `mean_latency_ms` | 0 | 600000 | Permissive — machines vary. Real numbers are in `extras.p50_latency_ms` / `throughput_passes_per_s`. |
