@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+
+# Virtual envs / package managers
+.venv/
+venv/
+
+# Jupyter (we don't use notebooks but block any stray)
+.ipynb_checkpoints/
+
+# Test / lint caches
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Editor / OS
+.DS_Store
+*.swp
+*.swo
+
+# Course artifacts
+results/
+checkpoints/
+runs/
+logs/
+.cache/
+*.log
+
+# Local secrets / env overrides
+.env
+.env.local

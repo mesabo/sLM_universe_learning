@@ -1,0 +1,17 @@
+# Course 0 ch1 class1 — HF ecosystem tour, sanity check.
+
+course: course0_bridge
+class_id: chapter1_hf_tour_class1_automodel
+task: sanity
+method: load
+
+# Backbone to inspect. Override at the CLI: backbone=HuggingFaceTB/SmolLM2-135M-Instruct
+backbone: sentence-transformers/all-MiniLM-L6-v2
+
+# Prompt for the forward sanity check.
+prompt: "Hello world from sLM Universe Learning."
+
+# Expected metric bands. The eval exits non-zero if anything falls outside.
+expected_band:
+  forward_ok: [1, 1]
+  hidden_size_ok: [1, 1]

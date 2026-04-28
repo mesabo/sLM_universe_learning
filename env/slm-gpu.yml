@@ -1,0 +1,34 @@
+name: slm-gpu
+channels:
+  - pytorch
+  - nvidia
+  - conda-forge
+
+dependencies:
+  - python=3.11
+  - pip>=24
+  - git
+  - pytorch=2.4.*
+  - pytorch-cuda=12.1
+  - numpy>=1.26,<2.2
+  - pandas>=2.2
+  - pyyaml>=6
+  - tqdm>=4.66
+  - rich>=13.7
+  - pip:
+      - transformers>=4.46,<5
+      - tokenizers>=0.20
+      - datasets>=3.0
+      - evaluate>=0.4.3
+      - accelerate>=1.0
+      - peft>=0.13
+      - trl>=0.11
+      - sentence-transformers>=3.2
+      - huggingface_hub>=0.26
+      - safetensors>=0.4
+      - bitsandbytes>=0.44
+      - pydantic>=2.9
+      - tensorboard>=2.18
+      - python-dotenv>=1.0
+      - pytest>=8
+      - ruff>=0.7

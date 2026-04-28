@@ -1,0 +1,51 @@
+# Single source of truth for backbone names used across the course.
+# `shared.backbones.load_backbone(name)` validates every name against this list.
+#
+# `kind` controls which adapters / tokenization / pooling rules apply:
+#   - sentence-encoder : SentenceTransformer wrapper, mean/CLS pooling
+#   - encoder          : raw HF encoder (e.g. BERT-style); for classification heads
+#   - decoder          : causal LM; supports SFT / DPO / generation
+#
+# Field meanings:
+#   id           HF model id (passed to from_pretrained)
+#   kind         one of {sentence-encoder, encoder, decoder}
+#   params_m     parameter count in millions (informational)
+#   max_len      default max_position_embeddings to assume
+#   dtype        recommended dtype on GPU; CPU env will fall back to float32
+#   pooling      only for sentence-encoder / encoder kinds
+
+default: sentence-transformers/all-MiniLM-L6-v2
+
+candidates:
+  - id: sentence-transformers/all-MiniLM-L6-v2
+    kind: sentence-encoder
+    params_m: 22
+    max_len: 256
+    dtype: float32
+    pooling: mean
+
+  - id: BAAI/bge-small-en-v1.5
+    kind: sentence-encoder
+    params_m: 33
+    max_len: 512
+    dtype: float32
+    pooling: cls
+
+  - id: thenlper/gte-small
+    kind: sentence-encoder
+    params_m: 33
+    max_len: 512
+    dtype: float32
+    pooling: mean
+
+  - id: HuggingFaceTB/SmolLM2-135M-Instruct
+    kind: decoder
+    params_m: 135
+    max_len: 8192
+    dtype: bfloat16
+
+  - id: HuggingFaceTB/SmolLM2-360M-Instruct
+    kind: decoder
+    params_m: 360
+    max_len: 8192
+    dtype: bfloat16

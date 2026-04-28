@@ -1,0 +1,16 @@
+# Hardware budget for the sharded launcher.
+#
+# `cuda_devices`     ordered list of GPU indices the launcher may use.
+# `max_parallel`     total parallel jobs (= len(cuda_devices) * jobs_per_gpu by default).
+# `jobs_per_gpu`     keep at 1 for training; raise carefully for cheap eval shards.
+# `cpu_threads`      OMP/MKL thread cap per job to prevent oversubscription.
+#
+# Override `cuda_devices` at runtime via env: CUDA_DEVICES=4,5 bash run.sh
+
+cuda_devices: [4, 5, 6, 7]
+jobs_per_gpu: 1
+max_parallel: 4
+cpu_threads: 4
+
+# Memory hints — informational, used by `shared.backbones` when sizing dtype.
+gpu_memory_gb: 24    # per device; tune to your hardware

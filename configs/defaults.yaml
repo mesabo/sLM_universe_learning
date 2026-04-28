@@ -1,0 +1,28 @@
+# Project-wide defaults. Class configs `!include` this and override fields.
+
+seed: 42
+
+paths:
+  results_root: results
+  cache_root: .cache
+  hf_cache: .cache/huggingface
+  runs_root: runs
+  checkpoints_root: checkpoints
+
+logging:
+  jsonl: true
+  rich: true
+  wandb: false
+  tensorboard: true
+  log_level: INFO
+
+batch:
+  # Conservative defaults; classes override per task.
+  train_per_device: 8
+  eval_per_device: 16
+  grad_accum: 1
+
+dtype:
+  encoder: float32
+  decoder: bfloat16
+  fallback_cpu: float32

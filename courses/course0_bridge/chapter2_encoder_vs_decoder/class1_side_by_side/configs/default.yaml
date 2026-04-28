@@ -1,0 +1,22 @@
+# Course 0 ch2 class1 — encoder vs decoder, side by side.
+
+course: course0_bridge
+class_id: chapter2_encoder_vs_decoder_class1_side_by_side
+task: sanity
+method: compare
+
+encoder_backbone: sentence-transformers/all-MiniLM-L6-v2
+decoder_backbone: HuggingFaceTB/SmolLM2-135M-Instruct
+
+prompt: "In one sentence, what is a small language model?"
+
+# Generation knobs (only used for the decoder).
+generation:
+  max_new_tokens: 64
+  do_sample: false
+  temperature: 1.0
+
+expected_band:
+  output_ok: [1, 1]
+  dim_matches_hidden: [1, 1]
+  tokens_generated: [1, 256]
