@@ -21,6 +21,7 @@ from shared import (
     config,
     continual,
     datasets,
+    drift,
     eval_harness,
     launcher,
     logging_utils,
@@ -36,10 +37,45 @@ def test_imports_resolve():
     assert all(
         m is not None
         for m in [
-            backbones, config, continual, datasets, eval_harness,
+            backbones, config, continual, datasets, drift, eval_harness,
             launcher, logging_utils, paths, registry, repro, training,
         ]
     )
+
+
+def test_drift_psi_baseline_against_itself_is_near_zero():
+    """A distribution compared to itself must give PSI ≈ 0."""
+    import numpy as np
+
+    rng = np.random.default_rng(0)
+    emb = rng.standard_normal((512, 32)).astype(np.float32)
+    proj = drift.fit_projection(emb, n_components=4)
+    hist, edges = drift.histogram_along_projection(emb, proj, n_bins=10)
+    psi_self = drift.psi(hist, hist)
+    assert psi_self < 1e-6
+
+
+def test_drift_psi_shifted_histograms_above_alarm():
+    """Two clearly different histograms must give PSI > 0.25 (alarm threshold)."""
+    import numpy as np
+
+    base_hist = np.array([0.50, 0.30, 0.15, 0.05])  # mass concentrated in first bins
+    live_hist = np.array([0.05, 0.15, 0.30, 0.50])  # mass concentrated in last bins
+    score = drift.psi(base_hist, live_hist)
+    assert score > 0.25, f"expected PSI > 0.25 for clearly-shifted hists, got {score:.4f}"
+
+
+def test_drift_projection_shape_and_orthonormality():
+    """fit_projection returns [d, k] with orthonormal columns (top-k right SV's)."""
+    import numpy as np
+
+    rng = np.random.default_rng(42)
+    emb = rng.standard_normal((256, 32)).astype(np.float32)
+    proj = drift.fit_projection(emb, n_components=4)
+    assert proj.shape == (32, 4)
+    # Columns of proj should be near-orthonormal: P^T P ≈ I_4
+    gram = proj.T @ proj
+    assert np.allclose(gram, np.eye(4), atol=1e-4)
 
 
 def test_registry_init_register_promote_rollback(tmp_path, monkeypatch):

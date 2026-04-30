@@ -1,0 +1,72 @@
+# Course 3 ch4 class1 — monitoring: PSI + canary accuracy + latency.
+
+course: course3_pipeline
+class_id: chapter4_monitoring_class1_psi_canary
+task: monitoring
+method: psi-canary-t6
+
+backbone: sentence-transformers/all-MiniLM-L6-v2
+seed: 42
+mode: smoke
+
+dataset:
+  ag_news:
+    hf_id: ag_news
+    split: {train: train, eval: test}
+    text_field: text
+    label_field: label
+  emotion:
+    hf_id: dair-ai/emotion
+    split: train
+    text_field: text
+    label_field: label
+    label_remap: {0: 0, 1: 1, 2: 2, 3: 3, 4: null, 5: null}
+  num_labels: 4
+
+baseline:
+  size: 1024
+  n_components: 4
+  n_bins: 10
+
+bootstrap_classifier:
+  train_size: 512
+  canary_size: 128
+
+live:
+  batch_size: 256
+  # OOD fraction per tick. The list length is n_ticks; ramps up to demonstrate
+  # PSI rising and canary accuracy falling.
+  shift_schedule: [0.0, 0.0, 0.2, 0.4, 0.6, 0.8]
+
+psi:
+  alarm_threshold: 0.25
+
+train:
+  per_device_batch: 16
+  grad_accum: 1
+  lr: 5.0e-5
+  weight_decay: 0.01
+  warmup_ratio: 0.06
+  max_len: 128
+  bf16: true
+  fp16: false
+  log_steps: 25
+  epochs_for_classifier: 2
+
+expected_band:
+  smoke:
+    psi_baseline: [0.0, 0.05]
+    psi_max: [0.05, 100.0]
+    live_accuracy_baseline: [0.40, 1.0]
+    live_accuracy_min: [0.0, 1.0]
+    accuracy_psi_correlation: [-1.0, 0.0]
+    n_ticks_above_alarm: [0, 100]
+    mean_latency_ms: [0.0, 600000.0]
+  full:
+    psi_baseline: [0.0, 0.05]
+    psi_max: [0.25, 100.0]
+    live_accuracy_baseline: [0.55, 1.0]
+    live_accuracy_min: [0.0, 1.0]
+    accuracy_psi_correlation: [-1.0, 0.0]
+    n_ticks_above_alarm: [1, 100]
+    mean_latency_ms: [0.0, 600000.0]
