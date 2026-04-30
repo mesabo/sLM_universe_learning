@@ -25,6 +25,7 @@ from shared import (
     launcher,
     logging_utils,
     paths,
+    registry,
     repro,
     training,
 )
@@ -36,9 +37,67 @@ def test_imports_resolve():
         m is not None
         for m in [
             backbones, config, continual, datasets, eval_harness,
-            launcher, logging_utils, paths, repro, training,
+            launcher, logging_utils, paths, registry, repro, training,
         ]
     )
+
+
+def test_registry_init_register_promote_rollback(tmp_path, monkeypatch):
+    """Round-trip: init run -> register two versions -> promote -> rollback."""
+    monkeypatch.setenv("RESULTS_ROOT", str(tmp_path / "results"))
+    # Override checkpoints_root by patching the function the module reads.
+    import shared.paths as paths_mod
+
+    monkeypatch.setattr(
+        paths_mod, "checkpoints_root", lambda: tmp_path / "checkpoints"
+    )
+
+    course, klass, run_id = "course_test", "class_test", "run_a"
+    h1 = registry.register_version(course, klass, run_id,
+                                   manifest={"canary_accuracy": 0.80})
+    assert h1.version == 1
+    assert (h1.path / "manifest.json").is_file()
+    assert h1.manifest["canary_accuracy"] == 0.80
+
+    h2 = registry.register_version(course, klass, run_id,
+                                   manifest={"canary_accuracy": 0.85},
+                                   parent_version=1)
+    assert h2.version == 2
+    assert h2.manifest["parent_version"] == 1
+
+    versions = registry.list_versions(course, klass, run_id)
+    assert [h.version for h in versions] == [1, 2]
+
+    # Initially, no production pointer exists.
+    assert registry.get_production(course, klass, run_id) is None
+
+    registry.promote(course, klass, run_id, 2)
+    prod = registry.get_production(course, klass, run_id)
+    assert prod is not None and prod.version == 2
+
+    registry.rollback(course, klass, run_id, 1)
+    prod = registry.get_production(course, klass, run_id)
+    assert prod is not None and prod.version == 1
+
+
+def test_registry_promote_unknown_version_raises(tmp_path, monkeypatch):
+    import shared.paths as paths_mod
+
+    monkeypatch.setattr(paths_mod, "checkpoints_root", lambda: tmp_path / "ck")
+    registry.register_version("c", "k", "r", manifest={})
+    with pytest.raises(ValueError):
+        registry.promote("c", "k", "r", 99)
+
+
+def test_registry_decision_log_appends(tmp_path, monkeypatch):
+    import shared.paths as paths_mod
+
+    monkeypatch.setattr(paths_mod, "checkpoints_root", lambda: tmp_path / "ck")
+    registry.write_decision_log("c", "k", "r", {"cycle": 0, "decision": "promote"})
+    registry.write_decision_log("c", "k", "r", {"cycle": 1, "decision": "reject"})
+    log = (tmp_path / "ck" / "c" / "k" / "r" / "decisions.jsonl").read_text()
+    assert log.count("\n") == 2
+    assert '"cycle": 0' in log and '"cycle": 1' in log
 
 
 def test_continual_history_and_metrics_two_tasks():
