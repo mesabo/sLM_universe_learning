@@ -1,0 +1,68 @@
+# Course 3 ch3 class1 — auto-update with drift trigger + blue/green swap.
+
+course: course3_pipeline
+class_id: chapter3_auto_update_class1_blue_green
+task: auto_update
+method: blue-green-c4
+
+backbone: sentence-transformers/all-MiniLM-L6-v2
+seed: 42
+mode: smoke
+run_id: smoke_run
+
+dataset:
+  ag_news:
+    hf_id: ag_news
+    split:
+      train: train
+      eval: test
+    text_field: text
+    label_field: label
+  emotion:
+    hf_id: dair-ai/emotion
+    split: train
+    text_field: text
+    label_field: label
+    label_remap: {0: 0, 1: 1, 2: 2, 3: 3, 4: null, 5: null}
+  num_labels: 4
+
+bootstrap:
+  train_size: 512
+  canary_size: 128
+
+cycles:
+  n: 4
+  fresh_size: 256
+  drift_emotion_ratio: 0.50    # at peak, half the live pool is OOD Emotion data
+
+gate:
+  degradation_threshold: 0.55  # below this, retrain is triggered
+  acceptance_margin: 0.05      # candidate may regress up to 5pp and still promote
+
+train:
+  per_device_batch: 16
+  grad_accum: 1
+  lr: 5.0e-5
+  weight_decay: 0.01
+  warmup_ratio: 0.06
+  max_len: 128
+  bf16: true
+  fp16: false
+  log_steps: 25
+  epochs_per_train: 2
+
+expected_band:
+  smoke:
+    n_cycles_completed: [1, 100]
+    n_drift_triggers: [1, 100]
+    n_promotions: [0, 100]
+    n_rejections: [0, 100]
+    final_production_version: [1, 100]
+    final_canary_accuracy: [0.40, 1.0]
+  full:
+    n_cycles_completed: [1, 100]
+    n_drift_triggers: [1, 100]
+    n_promotions: [0, 100]
+    n_rejections: [0, 100]
+    final_production_version: [1, 100]
+    final_canary_accuracy: [0.55, 1.0]
