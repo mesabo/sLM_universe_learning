@@ -5,6 +5,18 @@ Use this entrypoint to recompute eval loss on a saved checkpoint.
 
 from __future__ import annotations
 
+
+# --- ensure repo root is importable when invoked via `python <path>/train.py` ---
+import sys as _sys, pathlib as _pathlib
+_root = _pathlib.Path(__file__).resolve()
+for _p in [_root.parent, *_root.parents]:
+    if (_p / "pyproject.toml").is_file():
+        if str(_p) not in _sys.path:
+            _sys.path.insert(0, str(_p))
+        break
+del _sys, _pathlib, _root, _p
+# --- end shim ---
+
 import argparse
 import os
 
