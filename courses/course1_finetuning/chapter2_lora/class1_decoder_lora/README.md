@@ -1,10 +1,42 @@
 # Course 1 · Chapter 2 · Class 1 — LoRA fine-tuning of a decoder sLM
 
-> Goal: take SmolLM2-135M-Instruct and fine-tune it on the same smoltalk subset as ch1, but with LoRA — training only ~0.3% of the parameters and producing a tiny adapter file you can stack on top of the frozen base.
+> **Goal:** Take SmolLM2-135M-Instruct and fine-tune it using **LoRA (Low-Rank Adaptation)**. You will train only ~0.3% of the parameters, creating a tiny "adapter" that sits on top of a frozen base model.
 
 ---
 
-## Psycho — the mental model
+## 🧭 The 5 W's & 1 H (Foundations)
+
+### WHAT are we doing?
+We are performing **Parameter-Efficient Fine-Tuning (PEFT)** using a method called **LoRA**.
+*   **The Problem:** Full fine-tuning (from Chapter 1) requires updating millions of parameters, which is slow and memory-intensive.
+*   **The Solution:** Instead of changing the big weight matrices of the model, we add two much smaller matrices (A and B) next to them.
+*   **The Result:** We only train these tiny new matrices. The original model stays exactly as it was.
+
+### WHY are we doing this?
+*   **Memory Efficiency:** Because we only update a fraction of the parameters, we need far less GPU memory. This allows you to train larger models on consumer-grade hardware.
+*   **Storage Efficiency:** A full model might be several gigabytes. A LoRA "adapter" is typically only a few megabytes. You can store hundreds of specialized adapters for the same base model.
+*   **Preventing Forgetting:** Since the base model weights are **frozen**, the model's original "general knowledge" is perfectly preserved. It doesn't "drift" as easily as it does in full fine-tuning.
+
+### WHEN should you use this?
+*   Use **LoRA** for almost every fine-tuning task today. It has become the industry standard.
+*   Use it when you have limited hardware (e.g., a single 8GB or 12GB GPU).
+*   Use it when you need to deploy many specialized versions of a model (e.g., one for each customer) without storing multiple full-size copies.
+
+### WHERE do the "Adapters" go?
+The adapters are injected into the **Linear Layers** of the model's Attention mechanism.
+1.  Specifically, we target layers like `q_proj` (queries), `k_proj` (keys), and `v_proj` (values).
+2.  During a "forward pass," the data flows through the frozen original layer AND the new trainable LoRA matrices simultaneously.
+3.  The outputs are summed together. The LoRA matrices act as a "learned correction" to the original model's behavior.
+
+### HOW does it work (The Pipeline)?
+1.  **Freeze:** Set `requires_grad = False` for all original model parameters.
+2.  **Inject:** Use the `PEFT` library to add the low-rank matrices `A` and `B` into the target layers.
+3.  **Train:** Run SFT (Supervised Fine-Tuning) exactly like before, but only the new `A` and `B` weights will receive updates.
+4.  **Save:** Only save the tiny `adapter_model.bin`. At inference time, you load the big base model and "apply" this tiny file on top.
+
+---
+
+## 🧠 Psycho — the mental model
 
 > **One-line takeaway:** LoRA freezes the original engine and bolts on a *tiny tunable steering wheel*. The base never moves; only the bolt-on adapter learns.
 
@@ -12,18 +44,17 @@ Full fine-tuning rewrites the original parameters of the model. That's powerful 
 
 LoRA's bet: **the change you need to apply is low-rank**. The full weight matrix has, say, 576×576 entries, but the *delta* you'd add for your task lives in a tiny rank-16 subspace. So instead of training the matrix, you train two small matrices `A` (16×576) and `B` (576×16); the effective update is `B @ A`. That's ~18× fewer parameters touched.
 
-What this buys you:
-
+### The Benefits:
 - **Many adapters per base.** One per task, domain, or customer. Each adapter is a few MB.
 - **Hot-swap at inference.** `peft.set_adapter("name")` flips the active personality in microseconds.
-- **No catastrophic forgetting on the base.** The base's pretrained knowledge is preserved bit-for-bit because its parameters never updated. (Course 2 ch4 uses this property to isolate tasks.)
-- **Memory headroom for bigger models.** With LoRA you can train SmolLM2-360M on a 8 GB card — full FT couldn't fit. QLoRA (chapter 3) takes this further.
+- **No catastrophic forgetting on the base.** The base's pretrained knowledge is preserved bit-for-bit.
+- **Memory headroom.** Train 360M models where full FT would crash your GPU.
 
-The cost: a tiny capacity hit. At rank 16, you're saying "the optimal task delta lives in a 16-dimensional subspace". For most adaptation tasks that's plenty; for very different domains you might need rank 64+.
+**Common confusion to head off:** "If the base is frozen, how does the model learn anything new?" Because at every linear layer, the forward pass is now `(W + BA) @ x` instead of `W @ x`. The `BA` term is your trainable correction — small but in exactly the dimensions that matter.
 
-**Common confusion to head off:** "If the base is frozen, how does the model learn anything new?" Because at every linear layer, the forward pass is now `(W + BA) @ x` instead of `W @ x`. The `BA` term is your trainable correction — small but in exactly the dimensions that matter, because gradient descent picks them.
+---
 
-## Academic — what's happening
+## 🎓 Academic — what's happening
 
 For a target weight matrix $W \in \mathbb{R}^{d \times k}$ (e.g. `q_proj`), LoRA adds:
 
@@ -31,29 +62,31 @@ $$W' = W + \frac{\alpha}{r} B A, \quad A \in \mathbb{R}^{r \times k}, \, B \in \
 
 with rank $r \ll \min(d, k)$ (we use $r=16$ here; common values 4–64). Only $A$ and $B$ are trained; $W$ stays frozen. $A$ is initialized Kaiming-random, $B$ is initialized to zero so the model starts identical to the base.
 
-Trainable parameter count is $r(d+k)$ instead of $dk$. For SmolLM2's `q_proj` ($576 \times 576$): full = 331 776, LoRA-r16 = 18 432 — an 18× reduction *per matrix*.
+**Key Terms for Students:**
+*   **Rank (r):** The "width" of the tiny matrices. A higher rank means the adapter has more "brain power" but uses more memory.
+*   **Alpha (α):** A scaling factor. We usually set `alpha = 2 * rank` to ensure the adapter's influence is stable during training.
+*   **Target Modules:** The specific parts of the model (like `q_proj`) where we bolt on the adapters.
 
-References:
-- LoRA paper: [Hu et al., 2021 (ICLR'22)](https://arxiv.org/abs/2106.09685)
-- [PEFT — LoRA](https://huggingface.co/docs/peft/conceptual_guides/lora)
-- [PEFT — `LoraConfig`](https://huggingface.co/docs/peft/package_reference/lora)
+---
 
-## Engineering — what the code does
+## 🛠️ Engineering — what the code does
 
-[`train.py`](./train.py) reuses ch1 class 2's data path but:
+[`train.py`](./train.py):
 
-1. After loading the base model, calls `peft.get_peft_model(model, LoraConfig(...))`.
-2. `LoraConfig.target_modules` defaults to `shared.training.lora_target_modules(model)` — for SmolLM2/Llama family that's `["q_proj","k_proj","v_proj","o_proj"]`.
-3. Trains via `trl.SFTTrainer` exactly as ch1 class 2; the only difference is the model.
-4. Reports trainable / total parameter counts in the result JSON.
-5. Saves the adapter only (`trainer.save_model(output_dir)` writes `adapter_config.json` + `adapter_model.safetensors` — usually a few MB).
+1.  **PEFT Setup:** Calls `peft.get_peft_model` with a `LoraConfig`. This transforms the model into a "PeftModel".
+2.  **Targeting:** The script automatically finds the right modules to target (usually the Attention projections).
+3.  **SFT Training:** Uses `trl.SFTTrainer` just like in Chapter 1. The trainer is smart enough to only update the adapter weights.
+4.  **Parameter Reporting:** The logs will show you a "Trainable vs Total" parameter count. You should see a huge reduction (e.g., from 135,000,000 down to ~400,000).
+5.  **Lightweight Saving:** We save only the adapters, not the whole 135M model.
 
 ### Gotchas
-- `target_modules` is architecture-specific. Wrong list → silent no-op. Always print `model.print_trainable_parameters()` (PEFT prints it for you on construction) and confirm it's > 0.
-- `lora_alpha / r` is the effective scaling. Don't change `r` and `alpha` independently without thinking; the common rule of thumb is `alpha = 2*r` to keep the scale stable.
-- Adapter merging (`model.merge_and_unload()`) is destructive — it bakes the LoRA into the base. Don't do it on the only copy you have.
+- **Silent No-Ops:** If you target modules that don't exist in your model, LoRA will "succeed" but train 0 parameters. Always check the "Trainable Parameter Count" in the logs.
+- **Alpha Scaling:** Don't just increase `r` without thinking about `alpha`. If you change `r` from 16 to 32, usually increase `alpha` to 64.
+- **Merging:** You can "merge" the LoRA into the base model to speed up inference, but once you do, you lose the ability to swap it out.
 
-## Research — open questions
+---
+
+## 🧪 Research — open questions
 
 - Sweep `r ∈ {4, 8, 16, 32, 64}` and `alpha = 2r`. Plot `eval_loss vs r`. At what rank does the curve flatten?
 - IA³ (`peft.IA3Config`) is even smaller (per-element gating). Does it match LoRA on this task?
@@ -61,7 +94,7 @@ References:
 
 ---
 
-## How to run
+## 🚀 How to run
 
 ```bash
 bash courses/course1_finetuning/chapter2_lora/class1_decoder_lora/run.sh
@@ -69,13 +102,13 @@ bash courses/course1_finetuning/chapter2_lora/class1_decoder_lora/run.sh
 
 Smoke by default; `MODE=full` for the longer subset.
 
-## How to verify
+## ✅ How to verify
 
 `results/full/<backbone>/course1_finetuning/chapter2_lora_class1_decoder_lora/smoltalk/lora-r16.json`. Expected band (smoke):
 
-| Metric | Lo | Hi | Meaning |
-|---|---|---|---|
-| `train_loss_final` | 0 | 6.0 | Final training loss |
-| `eval_loss` | 0 | 6.0 | Held-out NLL on assistant tokens |
-| `loss_decreased` | 1 | 1 | Final < initial (sanity) |
-| `trainable_ratio_pct` | 0 | 5 | LoRA should train < 5% of params |
+| Metric | Passing Range | Meaning |
+|---|---|---|
+| `train_loss_final` | 0 - 6.0 | Final training loss |
+| `eval_loss` | 0 - 6.0 | Held-out NLL on assistant tokens |
+| `loss_decreased` | 1 (True) | Sanity check |
+| `trainable_ratio_pct` | 0 - 5.0 | Confirm LoRA trained < 5% of params |

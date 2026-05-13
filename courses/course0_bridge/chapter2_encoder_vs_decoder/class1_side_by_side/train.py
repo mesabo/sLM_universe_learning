@@ -22,7 +22,13 @@ del _sys, _pathlib, _root, _p
 import argparse
 import statistics
 import time
+import sys
+from pathlib import Path
 
+
+PROJECT_ROOT = Path(__file__).resolve().parents[4]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 from shared.backbones import load_backbone
 from shared.config import apply_overrides, load_yaml
 from shared.eval_harness import run_eval
@@ -76,6 +82,23 @@ def _resolve_prompts(cfg: dict) -> list[str]:
 
 
 def _emit(cfg: dict, backbone: str, metrics: dict[str, float]) -> None:
+    # Accept defensive inputs: some callers may accidentally pass the raw
+    # (_latencies, _indices, _last) tuple returned by `_time_n`. Convert
+    # that into a minimal metrics dict so `run_eval` can proceed.
+    if isinstance(metrics, tuple) and len(metrics) == 3:
+        latencies, indices, last = metrics
+        mean_ms = statistics.fmean(latencies) if latencies else 0.0
+        metrics = {
+            "output_ok": 1,
+            "tokens_generated": 1,
+            "n_passes_ran": len(latencies),
+            "mean_latency_ms": float(mean_ms),
+            "_extras": {
+                "latencies_ms": [round(x, 3) for x in latencies],
+                "prompt_indices": indices,
+            },
+        }
+
     extras = metrics.pop("_extras", {})
     run_eval(
         method=cfg["method"],
@@ -181,6 +204,13 @@ def _decoder_step(name: str, prompts: list[str], gen_cfg: dict,
     def _once(p: str):
         inputs = bb.tokenizer(p, return_tensors="pt").to(bb.model.device)
         with torch.no_grad():
+            # Exercise 3: Optional mean-pooled hidden-state vector from the decoder.
+            # This allows comparing decoder internal representations to encoder ones.
+            emb = None
+            if gen_cfg.get("compute_pooling", False):
+                out_enc = bb.model(**inputs, output_hidden_states=True, return_dict=True)
+                emb = out_enc.hidden_states[-1].mean(dim=1).squeeze(0)
+
             out_ids = bb.model.generate(
                 **inputs,
                 max_new_tokens=gen_cfg["max_new_tokens"],
@@ -188,17 +218,15 @@ def _decoder_step(name: str, prompts: list[str], gen_cfg: dict,
                 temperature=gen_cfg.get("temperature", 1.0),
                 pad_token_id=bb.tokenizer.eos_token_id,
             )
-        return out_ids, inputs
+        return out_ids, inputs, emb
 
     latencies, indices, last = _time_n(_once, prompts, n_passes, warmup)
-    out_ids, inputs = last
+    out_ids, inputs, emb = last
     new_tokens = int(out_ids.shape[-1] - inputs["input_ids"].shape[-1])
     text = bb.tokenizer.decode(out_ids[0], skip_special_tokens=True)
     mean_ms = statistics.fmean(latencies)
-    log.info("[decoder] new_tokens=%d n=%d mean=%.2fms p95=%.2fms preview=%s",
-             new_tokens, n_passes, mean_ms, _percentile(latencies, 0.95),
-             text[:120].replace("\n", " "))
-    return {
+    
+    metrics = {
         "output_ok": int(new_tokens > 0),
         "dim_matches_hidden": 1,  # not applicable; satisfies band
         "tokens_generated": new_tokens,
@@ -216,6 +244,20 @@ def _decoder_step(name: str, prompts: list[str], gen_cfg: dict,
             "prompt_indices": indices,
         },
     }
+
+    if emb is not None:
+        dim = int(emb.shape[-1])
+        log.info("[decoder] dim=%d norm=%.4f new_tokens=%d n=%d mean=%.2fms p95=%.2fms preview=%s",
+                 dim, float(emb.norm()), new_tokens, n_passes, mean_ms, _percentile(latencies, 0.95),
+                 text[:120].replace("\n", " "))
+        metrics["_extras"]["pooled_dim"] = dim
+        metrics["_extras"]["pooled_norm"] = float(emb.norm())
+    else:
+        log.info("[decoder] new_tokens=%d n=%d mean=%.2fms p95=%.2fms preview=%s",
+                 new_tokens, n_passes, mean_ms, _percentile(latencies, 0.95),
+                 text[:120].replace("\n", " "))
+
+    return metrics
 
 
 if __name__ == "__main__":

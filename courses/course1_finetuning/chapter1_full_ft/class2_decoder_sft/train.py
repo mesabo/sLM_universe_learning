@@ -21,7 +21,14 @@ import torch
 from datasets import load_dataset
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from trl import SFTConfig, SFTTrainer
+import sys
+from pathlib import Path
 
+
+PROJECT_ROOT = Path(__file__).resolve().parents[4]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+    
 from shared.config import apply_overrides, load_yaml
 from shared.eval_harness import run_eval
 from shared.logging_utils import get_logger
@@ -90,7 +97,7 @@ def main() -> None:
         learning_rate=cfg["train"]["lr"],
         warmup_ratio=cfg["train"]["warmup_ratio"],
         weight_decay=cfg["train"]["weight_decay"],
-        max_seq_length=cfg["train"]["max_seq_length"],
+        #max_seq_length=cfg["train"]["max_seq_length"],
         bf16=cfg["train"]["bf16"] and torch.cuda.is_available(),
         packing=cfg["train"]["packing"],
         logging_steps=cfg["train"]["log_steps"],
@@ -106,7 +113,7 @@ def main() -> None:
         args=sft_args,
         train_dataset=train_split,
         eval_dataset=eval_split,
-        tokenizer=tokenizer,
+        #tokenizer=tokenizer,
         formatting_func=_format,
     )
 

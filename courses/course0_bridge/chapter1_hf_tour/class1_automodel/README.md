@@ -44,7 +44,7 @@ Files:
 
 - [`train.py`](./train.py) — loads a backbone, runs `iterations.n_passes` timed forward passes (after `iterations.warmup` untimed ones), then writes a `metrics.json` via `shared.eval_harness.run_eval`. Latency stats (mean, p50, p95, throughput) land in the result JSON's `extras` block.
 - [`configs/default.yaml`](./configs/default.yaml) — backbone, prompt, `iterations` block (defaults to one pass for the cheap-and-fast sanity check), expected band.
-- [`run.sh`](./run.sh) — one-line entrypoint.
+- [`run.sh`](./run.sh) — one-line entrypoint. It includes a commented-out slot for `intfloat/multilingual-e5-small` if you want to extend the sweep to a 6th backbone.
 
 ### Playing with multiple forward passes and varied input
 
