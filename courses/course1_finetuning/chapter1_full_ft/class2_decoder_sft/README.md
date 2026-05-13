@@ -1,10 +1,44 @@
 # Course 1 · Chapter 1 · Class 2 — Full SFT of a decoder sLM with TRL
 
-> Goal: take SmolLM2-135M-Instruct and continue instruction-tuning it on a small open chat dataset using `trl.SFTTrainer`. After this class you'll know what an "SFT step" actually is, what a chat template does at training time, and why the loss only counts assistant tokens.
+> **Goal:** Take SmolLM2-135M-Instruct and continue instruction-tuning it on a small open chat dataset using `trl.SFTTrainer`. This is the foundational recipe for teaching a model "how to talk."
 
 ---
 
-## Psycho — the mental model
+## 🧭 The 5 W's & 1 H (Foundations)
+
+### WHAT are we doing?
+We are performing **Supervised Fine-Tuning (SFT)**.
+*   **The Data:** We use a subset of **SmolTalk**, a high-quality dataset of conversations. Each example is a list of messages like `[{"role": "user", "content": "..."}, {"role": "assistant", "content": "..."}]`.
+*   **The Model:** We use a **Decoder** (SmolLM2). Unlike encoders, decoders are "generative" machines designed to predict the next word in a sequence.
+*   **The Task:** We train the model to predict the assistant's response word-by-word, conditioned on the user's prompt.
+
+### WHY are we doing this?
+*   **Behavioral Alignment:** Pretrained models are "document completers." SFT teaches them to behave like assistants. It aligns the model's output style with human expectations.
+*   **Domain Specialization:** If you want a model to talk like a doctor, a pirate, or a Python expert, SFT is how you inject that "persona" or "voice."
+*   **Format Adherence:** SFT teaches the model to follow instructions (e.g., "Answer in JSON format") and respect chat boundaries.
+
+### WHEN should you use this?
+*   Use **SFT** when your base model is "smart" but "wild" (doesn't follow instructions well).
+*   Use it when you need to change the **style, tone, or format** of the model's responses.
+*   *Note:* Do not use SFT as the primary way to teach the model new facts; use RAG for that!
+
+### WHERE does the "Learning" happen?
+Learning happens specifically on the **Assistant's tokens**.
+1.  The model sees the System prompt and User prompt.
+2.  It uses these as "context" (it doesn't try to learn them).
+3.  When it reaches the Assistant's part of the conversation, we calculate the loss for every word it predicts.
+4.  **The Mask:** We "mask out" the user and system tokens so the model isn't penalized for how it thinks a user *should* have asked the question—it only cares about how it *answers*.
+
+### HOW does it work (The Pipeline)?
+1.  **Chat Templating:** We wrap the conversation in special markers (like `<|im_start|>user\n...<|im_end|>`) so the model knows who is talking.
+2.  **Forward Pass:** The model predicts the next token for the entire sequence.
+3.  **Label Masking:** We set the "Labels" for the user/system tokens to `-100`. PyTorch ignores any token with a `-100` label during loss calculation.
+4.  **Loss Calculation:** We use **Negative Log-Likelihood (NLL)** on the assistant's tokens.
+5.  **Optimization:** We update all the weights of the decoder to make the assistant's response more likely.
+
+---
+
+## 🧠 Psycho — the mental model
 
 > **One-line takeaway:** SFT is *"show, don't tell"*. Same loss function as pretraining; you just curate the examples.
 
@@ -25,7 +59,9 @@ The instinct that helps most: imagine you're teaching by example, not by rule. Y
 
 **Common confusion to head off:** "Why does the model still hallucinate after SFT?" Because SFT only teaches *style* and *format*; it doesn't insert new facts. New facts come from pretraining (frozen) or RAG (Course 1 ch6). If your SFT data implies "always give a confident answer", the model learns to do that even on questions it can't answer.
 
-## Academic — what's happening
+---
+
+## 🎓 Academic — what's happening
 
 The objective is the standard causal LM loss restricted to assistant spans:
 
@@ -38,31 +74,33 @@ In practice:
 2. The data collator builds `labels` such that every non-assistant token has `label = -100` (ignored by the cross-entropy loss).
 3. Backprop teaches the model the assistant continuation conditioned on system+user.
 
-Why Smol talk? Because the user's hardware (CUDA 4–7) can fully load SmolLM2-135M and a small SFT run in minutes. We use a tiny subset of [HuggingFaceTB/smoltalk](https://huggingface.co/datasets/HuggingFaceTB/smoltalk) — the official dataset that produced SmolLM2-Instruct.
+Why Smol talk? Because the user's hardware can fully load SmolLM2-135M and a small SFT run in minutes. We use a tiny subset of [HuggingFaceTB/smoltalk](https://huggingface.co/datasets/HuggingFaceTB/smoltalk) — the official dataset that produced SmolLM2-Instruct.
 
 References:
 - [TRL — `SFTTrainer`](https://huggingface.co/docs/trl/sft_trainer)
 - [SmolLM2 paper](https://huggingface.co/papers/2502.02737) (and the model card)
 - [InstructGPT (Ouyang et al., 2022)](https://arxiv.org/abs/2203.02155) — the SFT pattern
 
-## Engineering — what the code does
+---
+
+## 🛠️ Engineering — what the code does
 
 [`train.py`](./train.py):
 
-1. Loads SmolLM2-135M-Instruct via `shared.backbones.load_backbone`.
-2. Loads a tiny smoltalk subset via `datasets.load_dataset(..., split=...)` with a config-driven cap.
-3. Wraps with `trl.SFTTrainer`, passing `formatting_func` that calls `tokenizer.apply_chat_template(messages, tokenize=False)`.
-4. Trains for the configured steps; evaluates by holding out the last N rows.
-5. Computes a coarse "post-SFT generation looks reasonable" metric: mean log-probability the model assigns to the held-out assistant tokens.
-
-We deliberately keep the metric simple — chapter 6 (eval discipline) is where we get rigorous about chat-style evaluation.
+1.  **Model Loading:** Loads SmolLM2-135M-Instruct via `shared.backbones.load_backbone`.
+2.  **Dataset Preparation:** Loads a tiny smoltalk subset.
+3.  **SFTTrainer:** Wraps the model and data. We pass a `formatting_func` that converts our message lists into strings that the model can understand using the chat template.
+4.  **Training:** The model iterates through the data, learning the "style" of the assistant responses.
+5.  **Evaluation:** We measure the "Loss" on a held-out set. A lower loss means the model is getting better at predicting what the *real* assistant would have said.
 
 ### Gotchas
-- **CPU is impractically slow** for SmolLM2 SFT even at 135M. Smoke mode runs ~50 steps and is still uncomfortable. Use the GPU env.
-- `tokenizer.pad_token` defaults to `None` for many decoders; we set it to `eos_token` (TRL warns about this — that's fine for our setting).
-- `bf16` is the default dtype on CUDA; on CPU we silently fall back to `float32`.
+- **CPU Slowness:** SFT on a decoder is heavy. Even at 135M parameters, CPU training is very slow. Always prefer a GPU for this class.
+- **Padding Token:** Decoders often don't have a padding token by default. We reuse the `eos_token` (End Of Sentence) as a pad token to keep the math working.
+- **Precision:** We use `bf16` or `fp16` on GPUs to speed up training and save memory.
 
-## Research — open questions
+---
+
+## 🧪 Research — open questions
 
 - Replace smoltalk with `tatsu-lab/alpaca` (older, lower quality). Does eval log-prob improve on the smoltalk held-out anyway? What does that tell you about transfer between SFT corpora?
 - Pure SFT degrades safety-tuned behaviors. Try a "harmful" prompt before and after SFT — what changes?
@@ -70,7 +108,7 @@ We deliberately keep the metric simple — chapter 6 (eval discipline) is where 
 
 ---
 
-## How to run
+## 🚀 How to run
 
 ```bash
 bash courses/course1_finetuning/chapter1_full_ft/class2_decoder_sft/run.sh
@@ -78,12 +116,12 @@ bash courses/course1_finetuning/chapter1_full_ft/class2_decoder_sft/run.sh
 
 Smoke mode by default (~50 steps on a 1024-row subset). Use `MODE=full` for the full subset.
 
-## How to verify
+## ✅ How to verify
 
 `results/full/<backbone>/course1_finetuning/chapter1_full_ft_class2_decoder_sft/smoltalk/sft.json`. Expected band (smoke):
 
-| Metric | Lo | Hi | Meaning |
-|---|---|---|---|
-| `train_loss_final` | 0 | 6.0 | Final training loss (raw NLL) |
-| `eval_loss` | 0 | 6.0 | Held-out NLL on assistant tokens |
-| `loss_decreased` | 1 | 1 | Final train loss is below initial — sanity check that learning happened |
+| Metric | Passing Range | Meaning |
+|---|---|---|
+| `train_loss_final` | 0 - 6.0 | Final training loss (raw NLL) |
+| `eval_loss` | 0 - 6.0 | Held-out NLL on assistant tokens |
+| `loss_decreased` | 1 (True) | Sanity check: Did the model actually learn something? |

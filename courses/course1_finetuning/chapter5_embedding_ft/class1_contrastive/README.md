@@ -1,10 +1,43 @@
 # Course 1 · Chapter 5 · Class 1 — Contrastive fine-tuning of an encoder for retrieval
 
-> Goal: take a pretrained sentence-encoder (MiniLM, BGE-small, GTE-small) and fine-tune it on `(anchor, positive)` pairs with `MultipleNegativesRankingLoss`. After this class you'll know what "in-batch negatives" means, how `sentence-transformers` handles it under the hood, and how the resulting embeddings stack up under MRR / Recall@1 on a held-out retrieval task.
+> **Goal:** Take a pretrained sentence-encoder (MiniLM, BGE, or GTE) and fine-tune it using **Contrastive Learning**. You will teach the model to pull "similar" sentences closer together and push "different" sentences further apart in vector space.
 
 ---
 
-## Psycho — the mental model
+## 🧭 The 5 W's & 1 H (Foundations)
+
+### WHAT are we doing?
+We are performing **Contrastive Fine-Tuning**.
+*   **The Data:** We use "pairs" of sentences. In this class, we use the **Quora Duplicates** dataset (pairs of questions that mean the same thing).
+*   **The Goal:** We want to optimize the model so that for any "Anchor" question, its "Positive" match has a higher similarity score than any other question in the dataset.
+*   **The Loss:** We use **MultipleNegativesRankingLoss (MNRL)**, which is the industry standard for training retrievers.
+
+### WHY are we doing this?
+*   **Domain Alignment:** A general-purpose model might know that "Apple" is a fruit, but it might not know that in your specific technical support dataset, "Apple" and "MacBook" should be very close together.
+*   **Better Retrieval (RAG):** Contrastive fine-tuning is the single most important step for making a RAG system accurate. It ensures the "Retriever" actually finds the right documents.
+*   **Calibration:** It teaches the model a stricter "sense of distance," helping it distinguish between true paraphrases and sentences that just share a few common words.
+
+### WHEN should you use this?
+*   Use it when your RAG system is fetching the wrong documents.
+*   Use it when you have a dataset of "Search Query → Relevant Document" pairs.
+*   Use it when you need a custom embedding model for a specific industry (Legal, Medical, Finance).
+
+### WHERE do the "Negatives" come from?
+This is the "magic" of this class: **In-Batch Negatives**.
+1.  In a batch of 64 pairs, we have 64 Anchors and 64 Positives.
+2.  For Anchor #1, Positive #1 is the "Target."
+3.  **The Negatives:** We treat all the *other* 63 Positives in that same batch as "Negatives."
+4.  This means the model has to learn to pick the one right match out of a lineup of 64 possibilities. No manual labeling of "bad matches" is required!
+
+### HOW does it work (The Pipeline)?
+1.  **Sentence-Transformers:** We use the `sentence-transformers` library, which simplifies the training of Siamese Networks (two identical models comparing inputs).
+2.  **Cosine Similarity:** The model calculates the "angle" between the Anchor and all Positives in the batch.
+3.  **Ranking:** The model is penalized if the "True Positive" isn't the highest-scoring match.
+4.  **Evaluation:** We use **MRR (Mean Reciprocal Rank)** to see how high the true match ranks on average. An MRR of 1.0 is a perfect score.
+
+---
+
+## 🧠 Psycho — the mental model
 
 A pretrained sentence-encoder already produces semantically meaningful vectors — but it was trained on whatever distribution its authors chose. For your retrieval task (queries vs. docs in your domain), it almost certainly *under-clusters* near-duplicates and *over-separates* paraphrases. Contrastive fine-tuning fixes this by showing the model **pairs that should be close**.
 
@@ -12,7 +45,9 @@ The standard cheap trick is **in-batch negatives**: in a batch of `N` `(anchor, 
 
 You don't need a generation model, you don't need preference triples — just a corpus of "these two strings should be close". For RAG (chapter 6), this is *the* knob that turns a generic encoder into a retriever your application actually trusts.
 
-## Academic — what's happening
+---
+
+## 🎓 Academic — what's happening
 
 Let $f_\theta : \text{string} \to \mathbb{R}^d$ be the encoder, normalized to the unit sphere. For a batch of pairs $\{(a_i, p_i)\}_{i=1}^N$, MultipleNegativesRankingLoss is the symmetric InfoNCE / contrastive cross-entropy:
 
@@ -20,40 +55,32 @@ $$
 \mathcal{L} = -\frac{1}{N}\sum_{i=1}^N \log \frac{\exp(s \cdot f_\theta(a_i)^\top f_\theta(p_i))}{\sum_{j=1}^N \exp(s \cdot f_\theta(a_i)^\top f_\theta(p_j))}
 $$
 
-with temperature scale $s$ (default 20 in `sentence-transformers`). The denominator includes $j=i$ (the true positive) plus all $N-1$ other positives in the batch acting as in-batch negatives. Lower loss ⇒ true positive ranked higher than the rest.
+**Key Terms for Students:**
+*   **Anchor:** The starting sentence (e.g., a search query).
+*   **Positive:** The "correct" match (e.g., the answer).
+*   **In-batch Negatives:** Using other sentences in the same training batch as examples of "what NOT to find."
+*   **MRR (Mean Reciprocal Rank):** A metric that tells you, on average, where the correct answer ranked (1st, 2nd, 10th?).
 
-Crucially, **larger batches give a stronger contrastive signal** — every additional row adds a "harder" negative to compare against. With small batches (~8) the task is easy; with large batches (~128) it gets meaningful.
+---
 
-References:
-- [Henderson et al., *Efficient Natural Language Response Suggestion* (2017)](https://arxiv.org/abs/1705.00652) — original in-batch negatives idea
-- [`sentence_transformers.losses.MultipleNegativesRankingLoss`](https://www.sbert.net/docs/package_reference/sentence_transformer/losses.html#multiplenegativesrankingloss)
-- [SentenceTransformerTrainer API](https://www.sbert.net/docs/training/overview.html)
-- Eval data: [`sentence-transformers/quora-duplicates`](https://huggingface.co/datasets/sentence-transformers/quora-duplicates) — duplicate question pairs in Parquet, `pair` subset has `(anchor, positive)` columns
-
-## Engineering — what the code does
+## 🛠️ Engineering — what the code does
 
 [`train.py`](./train.py):
 
-1. Loads the backbone via `SentenceTransformer(name)` (the sentence-transformers wrapper, not raw HF — it adds the pooling head).
-2. Loads `sentence-transformers/quora-duplicates` (`pair` subset) — Parquet, `(anchor, positive)` columns.
-3. Caps to `limits[mode].train` rows and holds out `dataset.eval_holdout` for retrieval eval.
-4. Constructs `losses.MultipleNegativesRankingLoss(model)` and wraps with `SentenceTransformerTrainer`.
-5. Trains for the configured steps.
-6. Encodes held-out anchors and positives, computes a square cosine-similarity matrix, and reports:
-   - `mrr` — mean reciprocal rank of the true positive (diagonal) within the candidate set
-   - `recall_at_1` — fraction of anchors whose top-1 hit IS the true positive
-   - `recall_at_5`
-   - `loss_decreased` — sanity that training reduced the loss
-
-The metric band asserts MRR and recall@1 are above their pre-FT baseline (the bands below are calibrated on smoke runs against a frozen MiniLM).
+1.  **Model Loading:** Uses `SentenceTransformer(name)` to load the backbone.
+2.  **Dataset Preparation:** Loads `quora-duplicates`. We only use the pairs where humans agreed the questions were the same.
+3.  **MNRL Loss:** Sets up the `MultipleNegativesRankingLoss`.
+4.  **Trainer:** Uses `SentenceTransformerTrainer`. Note that larger batches (e.g., 64 or 128) provide a much stronger learning signal than small batches.
+5.  **Metrics:** Reports MRR and Recall@1. If Recall@1 is 0.80, it means the model found the perfect match 80% of the time.
 
 ### Gotchas
-- **Larger batch = stronger signal.** Default `per_device_batch=64`; pushing it to 128+ improves MRR materially even at the same step count.
-- The eval matrix is `[N_eval, N_eval]` — don't bump `eval_holdout` past `~1024` casually; memory grows quadratically with `N_eval` for the cosine matrix.
-- `SentenceTransformerTrainer` doesn't accept `bf16=True` on every backbone; default to fp32 and only enable bf16 if the backbone supports it. For MiniLM the matmul is so small that fp32 is fast anyway.
-- `convert_to_tensor=True` + `normalize_embeddings=True` is required for the cosine eval — without normalization, the diagonal is no longer the max even when the model "knows" the answer.
+- **Batch Size Matters:** In contrastive learning, batch size is a hyperparameter for "difficulty." If your batch is too small, the task is too easy and the model won't learn well.
+- **Eval Memory:** Calculating a similarity matrix for evaluation grows quadratically ($N^2$). Don't try to evaluate 10,000 sentences at once or you'll run out of memory!
+- **Normalization:** Always ensure embeddings are normalized before calculating cosine similarity, otherwise the scores won't make sense.
 
-## Research — open questions / extensions
+---
+
+## 🧪 Research — open questions / extensions
 
 - Sweep `batch_size ∈ {8, 32, 64, 128}` at the same total step count. Plot MRR vs batch size. Is the curve linear in `log(batch)`?
 - Train all three encoder backbones (MiniLM, BGE-small, GTE-small) to convergence on the same data. BGE-small is already retrieval-tuned — does it benefit less from your task-specific data than MiniLM?
@@ -62,7 +89,7 @@ The metric band asserts MRR and recall@1 are above their pre-FT baseline (the ba
 
 ---
 
-## How to run
+## 🚀 How to run
 
 ```bash
 bash courses/course1_finetuning/chapter5_embedding_ft/class1_contrastive/run.sh
@@ -70,41 +97,13 @@ bash courses/course1_finetuning/chapter5_embedding_ft/class1_contrastive/run.sh
 
 Smoke mode by default (~2048 train pairs, ~50 steps, ~1–2 min on a single GPU).
 
-## How to verify
+## ✅ How to verify
 
 `results/full/<backbone>/course1_finetuning/chapter5_embedding_ft_class1_contrastive/quora/mnrl-b<BATCH>.json`. Expected band (smoke):
 
-| Metric | Lo | Hi | Meaning |
-|---|---|---|---|
-| `mrr` | 0.40 | 1.0 | Mean reciprocal rank of true positive on held-out pairs |
-| `recall_at_1` | 0.30 | 1.0 | Fraction of anchors whose top-1 hit is the true positive |
-| `recall_at_5` | 0.55 | 1.0 | Top-5 hit rate |
-| `loss_decreased` | 1 | 1 | Final train loss < initial |
-| `train_loss_final` | 0.0 | 5.0 | Final InfoNCE loss |
-
-If MRR is near `1/N_eval` (random), the model didn't learn — check that loss decreased and the dataset has actual positive pairs (not random text).
-
-### Note on MiniLM + quora-duplicates: the eval ceiling
-
-A real-world finding from the smoke runs: **MiniLM is already retrieval-tuned and Quora was likely in its training mix**, so pre-FT MRR on this eval set is already ~0.97 and recall@5 is 1.0. There's almost no headroom for the loss to translate into MRR/recall improvements. The training loss does drop (~0.25 → ~0.19 in 50 steps), so the model IS learning; the ceiling just hides it.
-
-Two ways to get a more dramatic before/after:
-
-1. **Use a less-calibrated backbone.** Try `bert-base-uncased` (no contrastive pretraining) — pre-FT MRR is much lower, post-FT MRR jumps materially. (Add to `configs/backbones.yaml` first.)
-2. **Use a harder eval set.** Bump `dataset.eval_holdout` to 1024 — more in-batch negatives → more chance to confuse the retriever → harder MRR.
-
-Both are exercise-level extensions; the smoke band is satisfied at the current ceiling and the lesson stands.
-
-## Instructor checklist
-
-Before marking this class "done":
-
-- [ ] All four mode sections (Psycho / Academic / Engineering / Research) are present and ≥ 2 paragraphs each.
-- [ ] Every reference link points at an official source (paper / HF doc / repo) where one exists.
-- [ ] `train.py` and `eval.py` contain no numeric literal other than `0` / `1` (everything in `configs/*.yaml`).
-- [ ] `configs/default.yaml` declares an `expected_band` for every metric written by `eval.py`.
-- [ ] `run.sh` uses `HF_HOME=$PWD/.cache/huggingface` and is `chmod +x`.
-- [ ] `exercises.md` has exactly three exercises (warm-up / apply / stretch).
-- [ ] Result JSON path matches the layout `results/full/<backbone>/<course>/<class>/<task>/<method>.json`.
-- [ ] At least one smoke-mode run completed end-to-end and the metric band passes.
-- [ ] Linked from the parent course `README.md` table.
+| Metric | Passing Range | Meaning |
+|---|---|---|
+| `mrr` | 0.40 - 1.0 | Mean reciprocal rank (1.0 is perfect) |
+| `recall_at_1` | 0.30 - 1.0 | Did the #1 result match? |
+| `recall_at_5` | 0.55 - 1.0 | Was the match in the Top 5? |
+| `loss_decreased` | 1 (True) | Sanity check |

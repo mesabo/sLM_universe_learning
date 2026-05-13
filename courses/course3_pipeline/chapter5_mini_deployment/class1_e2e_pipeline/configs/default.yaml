@@ -1,0 +1,84 @@
+# Course 3 ch5 class1 — end-to-end mini-deployment (capstone).
+
+course: course3_pipeline
+class_id: chapter5_mini_deployment_class1_e2e_pipeline
+task: e2e
+method: pipeline-t8
+
+backbone: sentence-transformers/all-MiniLM-L6-v2
+seed: 42
+mode: smoke
+run_id: smoke_e2e
+
+dataset:
+  ag_news:
+    hf_id: ag_news
+    split: {train: train, eval: test}
+    text_field: text
+    label_field: label
+  emotion:
+    hf_id: dair-ai/emotion
+    split: train
+    text_field: text
+    label_field: label
+    label_remap: {0: 0, 1: 1, 2: 2, 3: 3, 4: null, 5: null}
+  num_labels: 4
+
+bootstrap:
+  train_size: 512
+  canary_size: 128
+
+baseline:
+  size: 1024
+  n_components: 4
+  n_bins: 10
+
+pipeline:
+  n_ticks: 8
+  live_batch_size: 64
+  # OOD ramp across ticks (length must equal n_ticks).
+  shift_schedule: [0.0, 0.0, 0.1, 0.3, 0.5, 0.6, 0.7, 0.8]
+
+active:
+  uncertainty_threshold: 1.0    # entropy > this -> queue for labeling
+  label_budget: 32              # commit when queue reaches this size
+
+monitoring:
+  tick_period: 2                 # compute PSI/live_acc every N ticks
+  alarm_threshold: 0.25          # PSI > this -> drift alarm
+
+gate:
+  degradation_threshold: 0.55    # live_acc below this also triggers retrain
+  acceptance_margin: 0.05        # candidate may regress up to 5pp and still promote
+
+train:
+  per_device_batch: 16
+  grad_accum: 1
+  lr: 5.0e-5
+  weight_decay: 0.01
+  warmup_ratio: 0.06
+  max_len: 128
+  bf16: true
+  fp16: false
+  log_steps: 25
+  epochs_per_train: 2
+
+expected_band:
+  smoke:
+    n_predictions_served: [64, 100000]
+    n_drift_alarms: [0, 100]
+    n_active_learning_commits: [0, 100]
+    n_promotions: [0, 100]
+    final_production_version: [1, 100]
+    final_live_accuracy: [0.20, 1.0]
+    mean_latency_ms: [0.0, 600000.0]
+    at_least_one_loop_fired: [1, 1]
+  full:
+    n_predictions_served: [64, 100000]
+    n_drift_alarms: [0, 100]
+    n_active_learning_commits: [0, 100]
+    n_promotions: [0, 100]
+    final_production_version: [1, 100]
+    final_live_accuracy: [0.40, 1.0]
+    mean_latency_ms: [0.0, 600000.0]
+    at_least_one_loop_fired: [1, 1]

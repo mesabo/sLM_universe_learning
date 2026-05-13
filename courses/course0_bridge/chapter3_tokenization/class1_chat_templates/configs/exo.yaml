@@ -1,0 +1,25 @@
+# Course 0 ch3 class1 — tokenization & chat templates.
+
+course: course0_bridge
+class_id: chapter3_tokenization_class1_chat_templates
+task: sanity
+method: tokens
+
+encoder_backbone: sentence-transformers/all-MiniLM-L6-v2
+decoder_backbone: HuggingFaceTB/SmolLM2-135M-Instruct
+
+prompt: "Explain LoRA fine-tuning in two sentences for a junior engineer."
+
+# A two-message chat for chat-template rendering.
+messages:
+  - role: system
+    content: "You are a concise teacher of small language models."
+  - role: user
+    content: "Explain LoRA fine-tuning in two sentences for a junior engineer."
+
+expected_band:
+  encoder_tokens: [1, 256]
+  decoder_tokens: [1, 256]
+  chat_no_genprompt_tokens: [1, 512]
+  chat_with_genprompt_tokens: [1, 512]
+  genprompt_adds_tokens: [1, 1]

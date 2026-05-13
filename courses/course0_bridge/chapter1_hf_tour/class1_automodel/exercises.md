@@ -19,4 +19,4 @@ Run `train.py` with `backbone=BAAI/bge-small-en-v1.5`. Compare the printed `hidd
 
 ## 3. Stretch — register a new backbone
 
-Add a 6th entry to `configs/backbones.yaml` (e.g. `intfloat/e5-small-v2`). Run this class against it. What in `shared/backbones.py` would need to change if the new backbone were a *retrieval-tuned* encoder rather than a sentence-encoder?
+Add a 6th entry to `configs/backbones.yaml` (for this repo, use `intfloat/multilingual-e5-small`). Run this class against it. A commented-out sweep entry is already waiting in `run.sh` if you want to enable it. What in `shared/backbones.py` would need to change if the new backbone were a *retrieval-tuned* encoder rather than a sentence-encoder?

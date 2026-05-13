@@ -17,11 +17,12 @@ CONFIG="courses/course0_bridge/chapter1_hf_tour/class1_automodel/configs/default
 # Default backbone (configured in YAML).
 python courses/course0_bridge/chapter1_hf_tour/class1_automodel/train.py --config "${CONFIG}"
 
-# Optional: sweep all five backbones. Comment out to skip.
+# Optional: sweep the registered backbones below. Comment out to skip.
 for bb in \
   "sentence-transformers/all-MiniLM-L6-v2" \
   "BAAI/bge-small-en-v1.5" \
   "thenlper/gte-small" \
+  # "intfloat/multilingual-e5-small" \
   "HuggingFaceTB/SmolLM2-135M-Instruct" \
   "HuggingFaceTB/SmolLM2-360M-Instruct"
 do

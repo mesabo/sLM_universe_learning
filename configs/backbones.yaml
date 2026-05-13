@@ -38,6 +38,13 @@ candidates:
     dtype: float32
     pooling: mean
 
+  - id: intfloat/multilingual-e5-small
+    kind: sentence-encoder
+    params_m: 118
+    max_len: 512
+    dtype: float32
+    pooling: mean
+
   - id: HuggingFaceTB/SmolLM2-135M-Instruct
     kind: decoder
     params_m: 135

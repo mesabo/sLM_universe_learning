@@ -1,0 +1,33 @@
+# Course 0 ch2 class1 — encoder vs decoder, side by side.
+
+course: course0_bridge
+class_id: chapter2_encoder_vs_decoder_class1_side_by_side
+task: sanity
+method: compare
+
+encoder_backbone: sentence-transformers/all-MiniLM-L6-v2
+decoder_backbone: HuggingFaceTB/SmolLM2-135M-Instruct
+
+# Prompts cycled across iteration passes — same list feeds both encoder and decoder.
+# `prompt` (singular) is still accepted for backward compat; if both are set, `prompts` wins.
+prompts:
+  - "Translate in French: 'What is a small language model?'"
+
+# Iteration knobs — applies to both encoder and decoder steps. Use n_passes>=5
+# to get useful latency stats; bump warmup on a cold GPU.
+iterations:
+  n_passes: 1
+  warmup: 0
+
+# Generation knobs (only used for the decoder).
+generation:
+  max_new_tokens: 64
+  do_sample: true
+  temperature: 0.8
+
+expected_band:
+  output_ok: [1, 1]
+  dim_matches_hidden: [1, 1]
+  tokens_generated: [1, 256]
+  n_passes_ran: [1, 100000]
+  mean_latency_ms: [0.0, 600000.0]
