@@ -215,6 +215,16 @@ def main() -> None:
         "prefill_fraction": float(prefill_fraction),
     }
 
+    # Industry terminology aliases
+    metrics["ttft_ms"] = metrics.get("prefill_time_ms", metrics.get("single_latency_ms", 0))
+    metrics["tpot_ms"] = metrics.get("mean_decode_per_token_ms", 0)
+
+    # p95 latency across single-request passes
+    if single_lats:
+        sorted_lats = sorted(single_lats)
+        p95_idx = int(0.95 * len(sorted_lats))
+        metrics["p95_latency_ms"] = sorted_lats[p95_idx]
+
     run_eval(
         method=cfg["method"],
         backbone=cfg["backbone"],

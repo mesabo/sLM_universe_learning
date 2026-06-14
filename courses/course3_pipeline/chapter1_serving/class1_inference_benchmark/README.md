@@ -36,6 +36,17 @@ References:
 - [vLLM paper, *Efficient Memory Management for Large Language Model Serving with PagedAttention* (Kwon et al., SOSP 2023)](https://arxiv.org/abs/2309.06180) — the production serving option, listed in research extensions
 - [NVIDIA blog — *Mastering LLM Techniques: Inference Optimization*](https://developer.nvidia.com/blog/mastering-llm-techniques-inference-optimization/)
 
+### Production Latency Vocabulary
+
+| Term | Definition | SLO target (typical) |
+|---|---|---|
+| **TTFT** (Time to First Token) | Prefill latency — time from request to first token | < 500 ms at p95 |
+| **TPOT** (Time Per Output Token) | Decode latency per step — determines streaming fluency | < 50 ms at p95 |
+| **p50 / p95 / p99** | Percentile latency — SLOs are ALWAYS set on percentiles, never mean | Service-specific |
+| **Throughput @ concurrency N** | Tokens/second while N requests are in-flight simultaneously | Benchmark at N=8,16,32 |
+
+> **Interview tip:** Never say "average latency" in a production context. Say "p95 latency" or "p99 tail latency."
+
 ## Engineering — what the code does
 
 [`train.py`](./train.py) (no training; named for class-folder uniformity):
