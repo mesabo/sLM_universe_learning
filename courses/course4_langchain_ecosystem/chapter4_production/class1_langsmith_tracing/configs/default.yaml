@@ -1,0 +1,22 @@
+course:   course4_langchain_ecosystem
+class_id: chapter4_production_class1_langsmith_tracing
+task:     tracing
+method:   langsmith
+
+provider:       huggingface
+backbone:       HuggingFaceTB/SmolLM2-135M-Instruct
+max_new_tokens: 64
+temperature:    0.1
+
+# Falls back to local JSONL trace when LANGSMITH_API_KEY not set
+offline_trace_path: results/course4_langchain_ecosystem/traces.jsonl
+
+mode: smoke
+limits:
+  smoke: { n_traces: 3 }
+  full:  { n_traces: 15 }
+
+expected_band:
+  traces_written_ok: [1, 1]
+  run_ids_unique_ok: [1, 1]
+  traceable_ok:      [-1, 1]  # -1 = langsmith not installed (expected offline)

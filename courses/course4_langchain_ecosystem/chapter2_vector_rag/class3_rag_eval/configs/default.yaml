@@ -1,0 +1,23 @@
+course:   course4_langchain_ecosystem
+class_id: chapter2_vector_rag_class3_rag_eval
+task:     rag_evaluation
+method:   ragas
+
+embed_backbone: sentence-transformers/all-MiniLM-L6-v2
+provider:       huggingface
+backbone:       HuggingFaceTB/SmolLM2-135M-Instruct
+max_new_tokens: 128
+temperature:    0.1
+
+vector_store:
+  backend: faiss
+
+mode: smoke
+limits:
+  smoke: { n_docs: 20, n_eval_samples: 3, k: 3 }
+  full:  { n_docs: 100, n_eval_samples: 15, k: 5 }
+
+expected_band:
+  context_recall:    [0.0, 1.0]
+  answer_similarity: [0.0, 1.0]
+  eval_complete:     [1, 1]

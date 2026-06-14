@@ -1,0 +1,19 @@
+course:   course4_langchain_ecosystem
+class_id: chapter3_agents_class1_tools_function_calling
+task:     tool_use
+method:   langchain_tools
+
+provider:       huggingface
+backbone:       HuggingFaceTB/SmolLM2-135M-Instruct
+max_new_tokens: 128
+temperature:    0.1
+
+mode: smoke
+limits:
+  smoke: { n_prompts: 3 }
+  full:  { n_prompts: 10 }
+
+expected_band:
+  tool_direct_ok: [1, 1]
+  tool_schema_ok: [1, 1]
+  tool_bind_ok:   [0, 1]   # HuggingFacePipeline lacks bind_tools; chat models support it

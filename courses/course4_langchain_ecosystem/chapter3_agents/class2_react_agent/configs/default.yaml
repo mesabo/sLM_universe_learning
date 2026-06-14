@@ -1,0 +1,18 @@
+course:   course4_langchain_ecosystem
+class_id: chapter3_agents_class2_react_agent
+task:     react_loop
+method:   agent_executor
+
+provider:       huggingface
+backbone:       HuggingFaceTB/SmolLM2-135M-Instruct
+max_new_tokens: 256
+temperature:    0.1
+
+mode: smoke
+limits:
+  smoke: { max_iterations: 3, n_tasks: 2 }
+  full:  { max_iterations: 5, n_tasks: 8 }
+
+expected_band:
+  agent_ok:  [1, 1]
+  avg_steps: [0.0, 10.0]

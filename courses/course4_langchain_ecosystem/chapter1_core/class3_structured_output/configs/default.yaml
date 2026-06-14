@@ -1,0 +1,20 @@
+course:   course4_langchain_ecosystem
+class_id: chapter1_core_class3_structured_output
+task:     structured_gen
+method:   pydantic_parser
+
+provider:   huggingface
+backbone:   HuggingFaceTB/SmolLM2-135M-Instruct
+
+temperature:   0.1
+max_new_tokens: 128
+
+mode: smoke
+limits:
+  smoke: { n_samples: 3 }
+  full:  { n_samples: 10 }
+
+expected_band:
+  parse_ok:  [1, 1]   # fallback extraction must succeed on at least 1 sample
+  schema_ok: [0, 1]   # 135M model may not follow schema; concept demonstrated
+  with_structured_output_ok: [-1, 1]  # -1 = NotImplementedError (SmolLM2 expected)
