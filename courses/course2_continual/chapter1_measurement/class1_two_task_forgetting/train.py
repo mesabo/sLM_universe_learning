@@ -162,7 +162,7 @@ def _train_on_task(model, tokenizer, task: TaskSplits, cfg: dict, log) -> None:
         bf16=cfg["train"]["bf16"] and torch.cuda.is_available(),
         fp16=cfg["train"]["fp16"] and torch.cuda.is_available(),
         eval_strategy="no",
-        save_strategy="no",
+        save_strategy="epoch",
         logging_steps=cfg["train"]["log_steps"],
         seed=cfg["seed"],
         report_to=[],
