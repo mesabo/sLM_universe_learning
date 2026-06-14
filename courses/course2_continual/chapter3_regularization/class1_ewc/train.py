@@ -218,6 +218,7 @@ class EWCTrainer(Trainer):
         self._fisher = fisher
         self._theta_star = theta_star
         self._lambda = float(ewc_lambda)
+        self._ewc_log = get_logger("course2.ch3.ewc")
 
     def compute_loss(self, model, inputs, return_outputs=False, **_kwargs):
         outputs = model(**inputs)
@@ -242,8 +243,8 @@ class EWCTrainer(Trainer):
         step = int(getattr(self.state, "global_step", 0))
         if step % max(1, int(self.args.logging_steps)) == 0:
             ce_val = float(ce_loss.mean().item()) if ce_loss.numel() > 1 else float(ce_loss.item())
-            print(f"[EWC] step={step} ce={ce_val:.4f} penalty={float(penalty.item()):.4f} "
-                  f"lambda={self._lambda}")
+            self._ewc_log.debug("[EWC] step=%d ce=%.4f penalty=%.4f lambda=%.4f",
+                                step, ce_val, float(penalty.item()), self._lambda)
         return (total, outputs) if return_outputs else total
 
 
@@ -274,7 +275,7 @@ def _train_on_task(model, tokenizer, task: TaskSplits, cfg: dict, log,
         bf16=cfg["train"]["bf16"] and torch.cuda.is_available(),
         fp16=cfg["train"]["fp16"] and torch.cuda.is_available(),
         eval_strategy="no",
-        save_strategy="no",
+        save_strategy="epoch",
         logging_steps=cfg["train"]["log_steps"],
         seed=cfg["seed"],
         report_to=[],
