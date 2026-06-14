@@ -34,6 +34,7 @@ expected_band:
     prefill_time_ms: [0.0, 600000.0]
     mean_decode_per_token_ms: [0.0, 100000.0]
     prefill_fraction: [0.0, 1.0]
+    p95_latency_ms: [0, 30000]
   full:
     single_request_latency_ms: [0.0, 600000.0]
     batched_latency_ms: [0.0, 600000.0]
@@ -41,3 +42,4 @@ expected_band:
     prefill_time_ms: [0.0, 600000.0]
     mean_decode_per_token_ms: [0.0, 100000.0]
     prefill_fraction: [0.0, 1.0]
+    p95_latency_ms: [0, 30000]
