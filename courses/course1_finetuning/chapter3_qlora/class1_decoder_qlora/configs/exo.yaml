@@ -1,0 +1,65 @@
+# Course 1 ch3 class1 — QLoRA (4-bit base + LoRA adapters) on SmolLM2-360M-Instruct.
+
+course: course1_finetuning
+class_id: chapter3_qlora_class1_decoder_qlora
+task: smoltalk
+method: qlora-r16_bnb_4bit_use_double_quant_false
+
+backbone: HuggingFaceTB/SmolLM2-360M-Instruct
+seed: 42
+mode: smoke
+
+dataset:
+  hf_id: HuggingFaceTB/smoltalk
+  config: smol-magpie-ultra
+  split: train
+  messages_field: messages
+  eval_holdout: 64
+
+limits:
+  smoke:
+    train: 1024
+    max_steps: 50
+  full:
+    train: 8192
+    max_steps: 500
+
+quantization:
+  load_in_4bit: true
+  bnb_4bit_quant_type: nf4         # nf4 (recommended) or fp4
+  bnb_4bit_compute_dtype: bfloat16 # the dtype used for forward / backward
+  bnb_4bit_use_double_quant: false
+
+lora:
+  r: 16
+  alpha: 32
+  dropout: 0.05
+  target_modules: null   # null => shared.training.lora_target_modules(model)
+  bias: "none"
+
+train:
+  per_device_batch: 1
+  grad_accum: 4
+  lr: 4.0e-4
+  warmup_ratio: 0.1
+  weight_decay: 0.0
+  max_seq_length: 1024
+  bf16: true
+  packing: false
+  optim: "paged_adamw_8bit"
+  gradient_checkpointing: true
+  log_steps: 10
+
+expected_band:
+  smoke:
+    train_loss_final: [0, 6.0]
+    eval_loss: [0, 6.0]
+    loss_decreased: [1, 1]
+    trainable_ratio_pct: [0, 5]
+    base_in_4bit: [1, 1]
+  full:
+    train_loss_final: [0, 4.0]
+    eval_loss: [0, 4.0]
+    loss_decreased: [1, 1]
+    trainable_ratio_pct: [0, 5]
+    base_in_4bit: [1, 1]
