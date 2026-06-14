@@ -1,0 +1,25 @@
+course:   course4_langchain_ecosystem
+class_id: chapter4_production_class2_production_patterns
+task:     production
+method:   streaming_caching
+
+provider:       huggingface
+backbone:       HuggingFaceTB/SmolLM2-135M-Instruct
+max_new_tokens: 64
+temperature:    0.1
+
+cache:
+  backend: in_memory   # or "redis" if Redis available
+
+mode: smoke
+limits:
+  smoke: { n_calls: 4 }
+  full:  { n_calls: 20 }
+
+expected_band:
+  stream_tokens_ok:  [1, 1]
+  cache_hit_ok:      [1, 1]
+  retry_ok:          [1, 1]
+  ainvoke_ok:        [-1, 1]
+  astream_ok:        [-1, 1]
+  abatch_ok:         [-1, 1]

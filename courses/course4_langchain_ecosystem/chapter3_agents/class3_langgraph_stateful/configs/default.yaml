@@ -1,0 +1,21 @@
+course:   course4_langchain_ecosystem
+class_id: chapter3_agents_class3_langgraph_stateful
+task:     stateful_graph
+method:   langgraph
+
+provider:       huggingface
+backbone:       HuggingFaceTB/SmolLM2-135M-Instruct
+max_new_tokens: 128
+temperature:    0.1
+max_graph_steps: 5
+
+mode: smoke
+limits:
+  smoke: { n_runs: 2 }
+  full:  { n_runs: 8 }
+
+expected_band:
+  graph_compiled_ok:  [1, 1]
+  routing_ok:         [1, 1]
+  state_persisted_ok: [1, 1]
+  hitl_ok:            [-1, 1]  # -1 = MemorySaver not available

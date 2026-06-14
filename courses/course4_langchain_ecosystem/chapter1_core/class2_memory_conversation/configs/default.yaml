@@ -1,0 +1,19 @@
+course:   course4_langchain_ecosystem
+class_id: chapter1_core_class2_memory_conversation
+task:     conversation
+method:   memory
+
+provider:   huggingface
+backbone:   HuggingFaceTB/SmolLM2-135M-Instruct
+
+temperature:   0.1
+max_new_tokens: 64
+
+mode: smoke
+limits:
+  smoke: { n_turns: 4 }
+  full:  { n_turns: 10 }
+
+expected_band:
+  buffer_ok:  [1, 1]
+  history_ok: [1, 1]

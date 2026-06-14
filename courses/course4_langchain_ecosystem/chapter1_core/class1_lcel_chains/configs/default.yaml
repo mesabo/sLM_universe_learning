@@ -1,0 +1,21 @@
+course:   course4_langchain_ecosystem
+class_id: chapter1_core_class1_lcel_chains
+task:     chain_exec
+method:   lcel
+
+provider:   huggingface
+backbone:   HuggingFaceTB/SmolLM2-135M-Instruct
+embed_backbone: sentence-transformers/all-MiniLM-L6-v2
+
+temperature:   0.1
+max_new_tokens: 64
+
+mode: smoke
+limits:
+  smoke: { n_prompts: 3 }
+  full:  { n_prompts: 20 }
+
+expected_band:
+  chain_ok:    [1, 1]
+  batch_ok:    [1, 1]
+  stream_ok:   [1, 1]

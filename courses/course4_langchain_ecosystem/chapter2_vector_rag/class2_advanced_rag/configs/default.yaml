@@ -1,0 +1,23 @@
+course:   course4_langchain_ecosystem
+class_id: chapter2_vector_rag_class2_advanced_rag
+task:     advanced_retrieval
+method:   multi_query_hybrid
+
+embed_backbone: sentence-transformers/all-MiniLM-L6-v2
+provider:       huggingface
+backbone:       HuggingFaceTB/SmolLM2-135M-Instruct
+max_new_tokens: 64
+temperature:    0.1
+
+vector_store:
+  backend: faiss
+
+mode: smoke
+limits:
+  smoke: { n_docs: 30, n_queries: 3, k: 3 }
+  full:  { n_docs: 200, n_queries: 20, k: 5 }
+
+expected_band:
+  multi_query_ok:   [1, 1]
+  compression_ok:   [1, 1]
+  recall_at_k:      [0.4, 1.0]

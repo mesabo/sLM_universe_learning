@@ -1,0 +1,25 @@
+course:   course4_langchain_ecosystem
+class_id: chapter2_vector_rag_class1_vector_stores
+task:     retrieval
+method:   vector_store
+
+embed_backbone: sentence-transformers/all-MiniLM-L6-v2
+
+vector_store:
+  backend: faiss       # also tested with chromadb
+
+mode: smoke
+limits:
+  smoke: { n_docs: 20, n_queries: 3, k: 3 }
+  full:  { n_docs: 200, n_queries: 20, k: 5 }
+
+chunking:
+  chunk_size: 256
+  chunk_overlap: 32
+
+expected_band:
+  faiss_recall:  [0.5, 1.0]
+  chroma_recall: [0.5, 1.0]
+  mmr_ok:        [1, 1]
+  chunking_ok:   [0, 1]
+  n_chunks:      [0, 10000]
