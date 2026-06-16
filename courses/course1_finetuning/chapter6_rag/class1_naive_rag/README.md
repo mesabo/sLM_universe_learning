@@ -102,7 +102,7 @@ bash courses/course1_finetuning/chapter6_rag/class1_naive_rag/run.sh
 
 Smoke mode by default — embeds a 2k-passage corpus and answers 32 questions in ~1–2 min on a single GPU. First run downloads the dataset.
 
-## ✅ How to verify
+## ✔ How to verify
 
 `results/full/<retriever>/course1_finetuning/chapter6_rag_class1_naive_rag/bioasq/rag-k<K>.json`. Expected band (smoke):
 

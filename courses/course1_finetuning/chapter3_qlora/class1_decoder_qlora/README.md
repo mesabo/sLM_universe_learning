@@ -101,7 +101,7 @@ bash courses/course1_finetuning/chapter3_qlora/class1_decoder_qlora/run.sh
 
 GPU env required (`env/slm-gpu.yml`); the script will fail loud and clear on a CPU-only env.
 
-## ✅ How to verify
+## ✔ How to verify
 
 `results/full/<backbone>/course1_finetuning/chapter3_qlora_class1_decoder_qlora/smoltalk/qlora-r16.json`. Expected band (smoke):
 

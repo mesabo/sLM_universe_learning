@@ -107,7 +107,7 @@ bash courses/course1_finetuning/chapter7_eval_discipline/class1_audit/run.sh
 
 Smoke mode by default — audits everything under `results/full/` and emits a Markdown report to stdout + `results/full/_audit_/.../report.md`.
 
-## ✅ How to verify
+## ✔ How to verify
 
 `results/full/_audit_/course1_finetuning/chapter7_eval_discipline_class1_audit/discipline/audit.json`. Expected band:
 

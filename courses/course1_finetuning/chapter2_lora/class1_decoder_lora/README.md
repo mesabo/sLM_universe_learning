@@ -102,7 +102,7 @@ bash courses/course1_finetuning/chapter2_lora/class1_decoder_lora/run.sh
 
 Smoke by default; `MODE=full` for the longer subset.
 
-## ✅ How to verify
+## ✔ How to verify
 
 `results/full/<backbone>/course1_finetuning/chapter2_lora_class1_decoder_lora/smoltalk/lora-r16.json`. Expected band (smoke):
 

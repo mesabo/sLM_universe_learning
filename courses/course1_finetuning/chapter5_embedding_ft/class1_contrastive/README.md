@@ -97,7 +97,7 @@ bash courses/course1_finetuning/chapter5_embedding_ft/class1_contrastive/run.sh
 
 Smoke mode by default (~2048 train pairs, ~50 steps, ~1–2 min on a single GPU).
 
-## ✅ How to verify
+## ✔ How to verify
 
 `results/full/<backbone>/course1_finetuning/chapter5_embedding_ft_class1_contrastive/quora/mnrl-b<BATCH>.json`. Expected band (smoke):
 

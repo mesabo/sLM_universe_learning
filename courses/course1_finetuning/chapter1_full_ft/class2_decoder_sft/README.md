@@ -116,7 +116,7 @@ bash courses/course1_finetuning/chapter1_full_ft/class2_decoder_sft/run.sh
 
 Smoke mode by default (~50 steps on a 1024-row subset). Use `MODE=full` for the full subset.
 
-## ✅ How to verify
+## ✔ How to verify
 
 `results/full/<backbone>/course1_finetuning/chapter1_full_ft_class2_decoder_sft/smoltalk/sft.json`. Expected band (smoke):
 
