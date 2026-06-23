@@ -1,5 +1,7 @@
 # Class 3 — Structured Output with Pydantic
 
+> Goal: make an LLM return validated structured data instead of loose prose by combining prompt-side schema instructions, JSON parsing, and Pydantic validation with a fallback path for malformed outputs.
+
 ## Psycho Mode
 
 Getting an LLM to return free-form prose is easy. Getting it to return a Python object you can actually use in code — with specific fields, correct types, and validation — is much harder. Structured output is the bridge between "the model said something" and "my application received a typed data structure."

@@ -1,5 +1,7 @@
 # Class 1 — LCEL Chains (PromptTemplate → LLM → OutputParser)
 
+> Goal: compose a prompt, model, and parser into one LCEL pipeline, then use the same chain with `.invoke()`, `.batch()`, and `.stream()` so the student understands LangChain's core runnable abstraction by doing.
+
 ## Psycho Mode
 
 Think of LCEL (LangChain Expression Language) as Unix pipes for LLM calls. Just as `cat file | grep pattern | wc -l` chains three programs by passing stdout to stdin, LCEL uses the `|` operator to chain a prompt, a model, and a parser. Each component is a "Runnable" — anything that accepts an input and returns an output. The beauty is composability: you can swap out any piece without touching the others. A chain is not a class you subclass; it is a pipeline you compose at the point of use.

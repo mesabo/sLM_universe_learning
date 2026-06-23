@@ -1,5 +1,7 @@
 # Class 2 — Conversation Memory
 
+> Goal: turn a stateless chat model into a multi-turn assistant by wiring message history into the prompt, then compare full-buffer, windowed, and summarized memory tradeoffs in practice.
+
 ## Psycho Mode
 
 Imagine talking to someone who forgets everything you said the moment you say it. Every message would have to re-introduce all context. That is exactly what a stateless LLM does by default: each call is independent. Conversation memory solves this by maintaining a "working notepad" of prior turns and prepending it to each new prompt.

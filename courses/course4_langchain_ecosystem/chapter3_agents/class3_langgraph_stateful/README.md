@@ -1,5 +1,7 @@
 # Class 3 — LangGraph: Stateful Multi-Actor Graphs
 
+> Goal: move beyond a linear agent loop by implementing a stateful graph with branches, cycles, and shared typed state, so orchestration logic becomes explicit and testable.
+
 ## Psycho Mode
 
 AgentExecutor is a linear loop — one model, one set of tools, step by step until done. LangGraph breaks this linearity. A LangGraph application is a directed graph where each node is a function that reads and updates a shared state, and edges define the flow of control. Conditional edges enable branching: the graph takes a different path depending on what the state contains. Cycles enable loops: the graph revisits a node until a stopping condition is met.

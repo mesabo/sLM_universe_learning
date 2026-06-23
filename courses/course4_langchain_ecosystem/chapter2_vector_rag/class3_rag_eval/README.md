@@ -1,5 +1,7 @@
 # Class 3 — RAG Evaluation with RAGAS
 
+> Goal: score a RAG system with RAGAS so retrieval and generation quality stop being guesswork, then map the resulting metrics back to concrete fixes in the pipeline.
+
 ## Psycho Mode
 
 You built a RAG pipeline. Is it good? Without measurement you are flying blind. RAGAS (RAG Assessment) provides a principled evaluation framework with metrics that diagnose specific failure modes. Context recall tells you whether the retriever is finding relevant passages. Faithfulness tells you whether the generator is hallucinating. Answer relevance tells you whether the output actually addresses the question. Together they form a diagnostic dashboard.

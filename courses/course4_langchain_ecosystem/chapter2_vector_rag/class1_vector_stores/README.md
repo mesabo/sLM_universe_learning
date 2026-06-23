@@ -1,5 +1,7 @@
 # Class 1 — FAISS vs ChromaDB Vector Stores
 
+> Goal: build the same embedding-backed retrieval workflow in both FAISS and ChromaDB, then compare speed, persistence, metadata filtering, and retrieval behavior so the storage tradeoff becomes concrete.
+
 ## Psycho Mode
 
 A vector store is a library catalog where every book has been converted into a point in high-dimensional space — and "find books similar to this one" becomes "find points nearest to this point." You embed a query into the same space, then retrieve the k nearest neighbors. This is semantic search: proximity in embedding space reflects meaning similarity, not keyword overlap.

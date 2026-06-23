@@ -1,5 +1,7 @@
 # Class 2 — Production Patterns: Streaming, Caching, Retry
 
+> Goal: harden an LLM application with streaming, caching, and retry so the student sees the concrete difference between a notebook demo and a service that behaves well under real user traffic.
+
 ## Psycho Mode
 
 Three patterns separate a prototype from a production LLM service. First, streaming: users hate staring at a blank screen for 5 seconds while the full response generates. Streaming pushes tokens to the client as they arrive, making the product feel responsive even for slow models. Second, caching: if 30% of your users ask "what is your return policy?" every day, why call the LLM 10,000 times? A semantic cache stores responses and retrieves them for similar (not just identical) queries. Third, retry: networks fail, rate limits hit, GPU memory spikes. A retry decorator catches transient errors and retries with backoff instead of failing the user.

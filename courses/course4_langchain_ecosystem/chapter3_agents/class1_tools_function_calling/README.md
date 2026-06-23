@@ -1,5 +1,7 @@
 # Class 1 — Tools and Function Calling
 
+> Goal: expose real Python functions to an LLM as typed tools, then show how schema-driven function calling turns a text generator into a system that can actually act on the outside world.
+
 ## Psycho Mode
 
 An LLM on its own can only produce text. Tools break that constraint: they let the model invoke real Python functions, read databases, query APIs, or run shell commands. The model decides which tool to call and with what arguments; your code executes it and passes the result back. This turn-taking between model and tools is the foundation of all LLM agents.

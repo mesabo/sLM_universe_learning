@@ -1,5 +1,7 @@
 # Class 1 — LangSmith Tracing and Observability
 
+> Goal: make LangChain execution debuggable by capturing trace trees, timings, inputs, outputs, and failures, whether through hosted LangSmith or a local trace log with the same mental model.
+
 ## Psycho Mode
 
 Debugging a LangChain application without observability is like debugging a distributed system without logs: you know something went wrong, but you cannot see where. LangSmith is the logging and tracing layer for the LangChain ecosystem. Every chain invocation becomes a "run" with a unique ID, a recorded input and output, a latency, and a full tree of child spans for each sub-step.

@@ -1,5 +1,7 @@
 # Class 2 — ReAct Agent with AgentExecutor
 
+> Goal: build a ReAct loop that reasons, calls tools, observes results, and continues until done, so the student sees how an agent differs from a single one-shot LLM call.
+
 ## Psycho Mode
 
 ReAct stands for Reasoning and Acting interleaved. Instead of generating a single response, a ReAct agent loops: it reasons about what to do next, acts by calling a tool, observes the result, then reasons again. This loop continues until the agent decides it has enough information to produce a final answer. The key insight is that explicit reasoning steps (written out as "Thought:") dramatically improve tool selection accuracy compared to directly outputting tool calls.

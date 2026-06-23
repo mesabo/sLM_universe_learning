@@ -1,5 +1,7 @@
 # Class 2 — Advanced RAG: Multi-Query, Compression, Hybrid
 
+> Goal: improve a naive RAG pipeline by adding multi-query retrieval, contextual compression, and hybrid sparse+dense search, and show which failure mode each technique is meant to fix.
+
 ## Psycho Mode
 
 Basic RAG is a single query hitting a single retriever. Advanced RAG is about addressing the failure modes of that simple approach. Three failure modes motivate three techniques in this class.
